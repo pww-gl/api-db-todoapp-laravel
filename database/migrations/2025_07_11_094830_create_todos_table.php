@@ -16,6 +16,8 @@ return new class extends Migration
             $table->bigInteger('user_id');
             $table->foreign('user_id')->references('id')->on('users');
             $table->string('content', length:255);
+            $table->boolean('is_done')->default(FALSE);
+            $table->dateTime('deadline')->nullable();
             $table->timestamps();
         });
     }
