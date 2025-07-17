@@ -11,7 +11,8 @@ use App\Http\Controllers\UserController;
 Route::get('login', [UserController::class, 'loginForm'] )->name('login');
 Route::post('login', [UserController::class, 'authenticate']);
 Route::post('logout', [UserController::class, 'logout'])->name('logout');
-//Route::post('register')
+Route::post('register', [UserController::class, 'register'])->name('register');
+
 /**
  *  For CRUD actions
  */
