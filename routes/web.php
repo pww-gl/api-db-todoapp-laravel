@@ -19,3 +19,5 @@ Route::post('register', [UserController::class, 'register'])->name('register');
 Route::resource('users.todos', TodoController::class)->except([
     'create', 'show', 'edit'
 ])->middleware('auth');
+
+Route::get('users/{user}/todos/done', [TodoController::class, 'indexDone'])->name('users.todos.done');

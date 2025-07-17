@@ -9,6 +9,7 @@ use App\Models\Todo;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
+use Illuminate\Support\Facades\Validator;
 
 class TodoController extends Controller
 {
@@ -19,7 +20,7 @@ class TodoController extends Controller
     {
         return view('index', [
             'user' => $user,
-            'todos' => $user->todos,
+            'todos' => $user->todos->where('is_done', '=', FALSE),
         ]);
     }
 
@@ -31,20 +32,45 @@ class TodoController extends Controller
         
     // }
 
+    public function indexDone(Request $request, User $user): View
+    {
+        return view('index', [
+            'user' => $user,
+            'todos' => $user->todos->where('is_done', '=', TRUE),
+            'mode' => 'done'
+        ]);
+    }
+    
     /**
      * Store a newly created resource in storage.
      */
     public function store(Request $request)
     {
-        $validRequest = $request->validate([
+        $validator = Validator::make($request->all(), [
             'user_id'  => 'required',
             'content'  => 'required|unique:todos',
             'deadline' => 'nullable|date',
-            'is_done'  => 'sometimes|boolean',
+        //    'is_done'  => 'sometimes|boolean',    
         ]);
 
-        Todo::create($validRequest);
-        return redirect()->route('users.todos.index', $request->user_id);
+        $validated = $validator->validated();
+
+        // $validRequest = $request->validate([
+        //     'user_id'  => 'required',
+        //     'content'  => 'required|unique:todos',
+        //     'deadline' => 'nullable|date',
+        //     'is_done'  => 'sometimes|boolean',
+        // ]);
+
+        if ($validator->fails()) {
+            return redirect()
+            ->back()
+            ->withErrors($validator);
+        }
+        
+        Todo::create($validated);
+        // return redirect()->route('users.todos.index', $request->user_id);
+        return redirect()->to(url()->previous());
     }
 
     // /**
@@ -73,7 +99,7 @@ class TodoController extends Controller
         $entry->is_done = $request["is_done"];
         $entry->save();
 
-        return redirect()->route('users.todos.index', [$user->id]);
+        return redirect()->to(url()->previous());
     }
 
     /**

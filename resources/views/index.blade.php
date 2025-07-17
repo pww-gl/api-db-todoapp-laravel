@@ -30,16 +30,41 @@
     <div class="container">
         <h1 style="margin: 2px 0">Welcome, {{ Auth::user()->name }}</h1>
 
+        @if ($errors->any())
+            <div class="alert alert-danger">
+                <ul>
+                    @foreach ($errors->all() as $error)
+                        <li>{{ $error }}</li>
+                    @endforeach
+                </ul>
+            </div>
+        @endif
+        
         <h2 style="margin: 1px 0">Add New Todo</h2>
         <form method="POST" action="{{ route('users.todos.store', Auth::user()->id) }}">
             @csrf
+            <input type="hidden" name="user_id" value="{{ $user->id }}">
             <input type="text" name="content" placeholder="Todo content" required>
             <input type="date" name="deadline">
             <button type="submit">Add Todo</button>
         </form>
 
-        <h2 style="margin: 2px 0">Your Todos</h2>
-        <table>
+        <h2>Todo List</h2>
+        <!-- Toggle Button -->
+        <div style="margin-bottom: 10px;">
+            @if (request()->routeIs('users.todos.index'))
+                <a href="{{ route('users.todos.done', Auth::user()->id) }}">
+                    <button>Show Done</button>
+                </a>
+            @else
+                <a href="{{ route('users.todos.index', Auth::user()->id) }}">
+                    <button>Show To-Do</button>
+                </a>
+            @endif
+        </div>
+
+        <!-- Todo Table -->
+        <table border="1" cellpadding="5" cellspacing="0">
             <thead>
                 <tr>
                     <th>Content</th>
@@ -55,7 +80,16 @@
                         <td>{{ $todo->deadline ?? '-' }}</td>
                         <td>{{ $todo->is_done ? 'Done' : 'Not Yet' }}</td>
                         <td>
-                            @if (!$todo->is_done)
+                            @if ($todo->is_done)
+                                <!-- Undo Done -->
+                                <form action="{{ route('users.todos.update', [Auth::user()->id, $todo->id]) }}" method="POST" style="display:inline;">
+                                    @csrf
+                                    @method('PUT')
+                                    <input type="hidden" name="is_done" value="0">
+                                    <button type="submit">Undo</button>
+                                </form>
+                            @else
+                                <!-- Mark as Done -->
                                 <form action="{{ route('users.todos.update', [Auth::user()->id, $todo->id]) }}" method="POST" style="display:inline;">
                                     @csrf
                                     @method('PUT')
@@ -63,6 +97,7 @@
                                     <button type="submit">Mark Done</button>
                                 </form>
                             @endif
+                            <!-- Delete -->
                             <form action="{{ route('users.todos.destroy', [Auth::user()->id, $todo->id]) }}" method="POST" style="display:inline;">
                                 @csrf
                                 @method('DELETE')
@@ -73,7 +108,22 @@
                 @endforeach
             </tbody>
         </table>
-        
+
+        <script>
+        const openForm = "{{ session('form') }}"; // will be 'register' or null
+
+        if (openForm === 'done') {
+            // Show register form, hide login form
+            document.getElementById('registerForm').style.display = 'block';
+            document.getElementById('loginForm').style.display = 'none';
+        } else {
+            // Default to login form visible
+            document.getElementById('loginForm').style.display = 'block';
+            document.getElementById('registerForm').style.display = 'none';
+        }
+        </script>
+
+
         <form method="POST" action="{{ route('logout') }}">
             @csrf
             <button type="submit">Logout</button>
