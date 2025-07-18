@@ -26,7 +26,7 @@ class UserController extends Controller
 
         if ($user && $user->password === NULL) {
             Auth::login($user);
-            return redirect()->intended('/users/'.$user->id.'/todos');
+            return redirect()->intended('/');
         }
 
         $credentials = $request->validate([
@@ -37,15 +37,8 @@ class UserController extends Controller
         if (Auth::attempt($credentials)) {
             $request->session()->regenerate();
             $id = Auth::id();
-            return redirect()->intended('/users/'.$id.'/todos');
+            return redirect()->intended('/');
         
-        }
-
-        
-        if (Auth::attempt($credentials)) {
-            $request->session()->regenerate();
-            $id = Auth::id();
-            return redirect()->intended('/users/'.$id.'/todos');
         }
 
         return back()->withErrors([
@@ -58,7 +51,7 @@ class UserController extends Controller
         Auth::logout();
         
         $request->session()->invalidate();
-        $request->session()->regenerateToken();
+        $request->session()->regenerateToken(); // Regenerate CSRF TOKEN
         
         return redirect()->route('login');
     }
@@ -67,8 +60,8 @@ class UserController extends Controller
     {
         $validator = Validator::make($request->all(), [
             'name'=>'required',
-            'email'=>'required|email',
-            'password'=>['sometimes','regex:/(?=.*[a-z])(?=.*[A-Z])(?=.*\d)[a-zA-Z\d]{11,}/m']
+            'email'=>'required|email|unique:users',
+            'password'=>['sometimes','regex:/(?=.*[a-z])(?=.*[A-Z])(?=.*\d)[a-zA-Z\d]{11,}/m']  // {4,} not yet test 
         ]);
 
         if ($validator->fails()) {
@@ -79,8 +72,22 @@ class UserController extends Controller
             ->with('form','register');
         }
         
-        $user = User::create($validator);
+        $validated = $validator->validated();
+        
+        $user = User::create($validated);
         Auth::login($user);
-        return redirect()->intended('/users/'.$user->id.'/todos');
+        return redirect()->intended('/');
     }
+
+    // function ganti password
+    
+    // function ganti nama
+
+    /**
+     * PRIORITAS
+     * function ganti profile picture
+     * fokus, manipulasi file
+     */
+
+    
 }

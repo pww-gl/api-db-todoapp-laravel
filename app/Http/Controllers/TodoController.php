@@ -10,66 +10,77 @@ use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Facades\Auth;
 
 class TodoController extends Controller
 {
     /**
-     * Display a listing of the resource.
+     *  Get index form
      */
-    public function index(Request $request, User $user): View
-    {
-        return view('index', [
+    public function homePage(Request $request): View
+    {        
+        $user = Auth::user();
+        $mode = $request->is_done;
+
+        return view('home', [
             'user' => $user,
-            'todos' => $user->todos->where('is_done', '=', FALSE),
+            'todos' => $user->todos->where('is_done', '=', $mode),
+            'is_done'=>$mode
         ]);
     }
 
     // /**
-    //  * Show the form for creating a new resource.
+    //  * Display a listing of the resource.
     //  */
+    // public function indexTodo()
+    // {
+        // $id = Auth::id();
+        // $user = User::find($id);
+// 
+        // return view('home', [
+            // 'user' => $user,
+            // 'todos' => $user->todos->where('is_done', '=', FALSE),
+        // ]);
+    // }
+// 
+    /**
+     * Show the form for creating a new resource.
+     */
     // public function create(Request $request)
     // {
-        
+        // 
     // }
-
-    public function indexDone(Request $request, User $user): View
-    {
-        return view('index', [
-            'user' => $user,
-            'todos' => $user->todos->where('is_done', '=', TRUE),
-            'mode' => 'done'
-        ]);
-    }
+// 
+    // public function indexDone(Request $request, User $user): View
+    // {
+        // $id = Auth::id();
+        // $user = User::find($id);
+// 
+        // return view('home', [
+            // 'user' => $user,
+            // 'todos' => $user->todos->where('is_done', '=', TRUE),
+        // ]);
+    // }
     
     /**
      * Store a newly created resource in storage.
      */
     public function store(Request $request)
     {
-        $validator = Validator::make($request->all(), [
+        $validated = $request->validate([
             'user_id'  => 'required',
             'content'  => 'required|unique:todos',
             'deadline' => 'nullable|date',
         //    'is_done'  => 'sometimes|boolean',    
         ]);
-
-        $validated = $validator->validated();
-
-        // $validRequest = $request->validate([
-        //     'user_id'  => 'required',
-        //     'content'  => 'required|unique:todos',
-        //     'deadline' => 'nullable|date',
-        //     'is_done'  => 'sometimes|boolean',
-        // ]);
-
-        if ($validator->fails()) {
-            return redirect()
-            ->back()
-            ->withErrors($validator);
-        }
         
+        $id = Auth::id();
+
+        if ($id !== (int) $request->user_id) {
+            abort('403','Unauthorized');
+        }        
+
         Todo::create($validated);
-        // return redirect()->route('users.todos.index', $request->user_id);
         return redirect()->to(url()->previous());
     }
 
@@ -90,7 +101,8 @@ class TodoController extends Controller
     // }
 
     /**
-     * Update the specified resource in storage.
+     *  Update the specified resource in storage.
+     *  Kalau request sudah ada ID nya
      */
     public function update(Request $request, User $user, Todo $todo)
     {
@@ -112,6 +124,15 @@ class TodoController extends Controller
         }
         
         $todo->delete();
-        return redirect()->route('users.todos.index', [$user->id]);
+        return redirect()->to(url()->previous());
+        // return redirect()->route('users.todos.index', [$user->id]);
     }
+
+    /**
+     *  PRIORITAS
+     *  Fungsi export -> data ke csv, etc
+     *  Fungsi import -> dari csv atau data lain, balik ke export
+     *  Manipulasi file
+     */
 }
+

@@ -24,6 +24,7 @@
             border-collapse: collapse;
             padding: 8px;
         }
+
     </style>
 </head>
 <body style="margin: 40px;">
@@ -40,28 +41,31 @@
             </div>
         @endif
         
+        <!-- Add New Todo -->
         <h2 style="margin: 1px 0">Add New Todo</h2>
         <form method="POST" action="{{ route('users.todos.store', Auth::user()->id) }}">
             @csrf
-            <input type="hidden" name="user_id" value="{{ $user->id }}">
+            <input type="hidden" name="user_id" value="{{ Auth::id() }}">
             <input type="text" name="content" placeholder="Todo content" required>
             <input type="date" name="deadline">
             <button type="submit">Add Todo</button>
         </form>
 
-        <h2>Todo List</h2>
+        <h2 style="text-align: center; margin: 5px 0">Todo List</h2>
         <!-- Toggle Button -->
-        <div style="margin-bottom: 10px;">
-            @if (request()->routeIs('users.todos.index'))
-                <a href="{{ route('users.todos.done', Auth::user()->id) }}">
-                    <button>Show Done</button>
-                </a>
-            @else
-                <a href="{{ route('users.todos.index', Auth::user()->id) }}">
-                    <button>Show To-Do</button>
-                </a>
-            @endif
+        <div style="text-align: center; margin: 5px 0;">
+            @php
+                $nextStatus = $is_done ? 0 : 1;  // Flip 0 <-> 1
+                $buttonText = $is_done ? 'Switch to To-Do' : 'Switch to Done';
+            @endphp
+
+            <a href="{{ route('home', ['is_done' => $nextStatus]) }}">
+                <button>{{ $buttonText }}</button>
+            </a>
         </div>
+
+        <h3 style="margin: 5px 0 0 0;">Showing {{ $is_done ? 'Done' : 'To-Do' }} Items</h3>
+
 
         <!-- Todo Table -->
         <table border="1" cellpadding="5" cellspacing="0">
@@ -108,21 +112,6 @@
                 @endforeach
             </tbody>
         </table>
-
-        <script>
-        const openForm = "{{ session('form') }}"; // will be 'register' or null
-
-        if (openForm === 'done') {
-            // Show register form, hide login form
-            document.getElementById('registerForm').style.display = 'block';
-            document.getElementById('loginForm').style.display = 'none';
-        } else {
-            // Default to login form visible
-            document.getElementById('loginForm').style.display = 'block';
-            document.getElementById('registerForm').style.display = 'none';
-        }
-        </script>
-
 
         <form method="POST" action="{{ route('logout') }}">
             @csrf

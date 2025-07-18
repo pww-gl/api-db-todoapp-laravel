@@ -17,7 +17,10 @@ Route::post('register', [UserController::class, 'register'])->name('register');
  *  For CRUD actions
  */
 Route::resource('users.todos', TodoController::class)->except([
-    'create', 'show', 'edit'
+    'create', 'show', 'edit','index'
 ])->middleware('auth');
 
-Route::get('users/{user}/todos/done', [TodoController::class, 'indexDone'])->name('users.todos.done');
+Route::middleware('auth')->group(function() {
+    Route::get('/', [TodoController::class, 'homePage'])->name('home');
+    Route::post('/', [TodoController::class, 'homePage'])->name('toggle');
+});
