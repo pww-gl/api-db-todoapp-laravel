@@ -10,6 +10,7 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\View\View;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
+use Intervention\Image\Laravel\Facades\Image;
 
 class UserController extends Controller
 {
@@ -89,5 +90,54 @@ class UserController extends Controller
      * fokus, manipulasi file
      */
 
-    
+    public function homePage(Request $request): View
+    {        
+        $user = Auth::user();
+        $mode = $request->is_done;
+
+        return view('home', [
+            'user' => $user,
+            'avatar_url' => $user->avatar_url,
+            'todos' => $user->todos->where('is_done', '=', $mode),
+            'is_done'=>$mode,
+        ]);
+    }
+
+    public function storeAvatar(Request $request) {
+        
+        $userId = $request->user()->id;
+
+        if ($id !== Auth::id()) {
+            abort('422', 'Unauthorized');
+        };
+
+        // $avatar = $request->file('avatar');
+        // if ($avatar->getSize() > (int) 10^6) {
+        //     return redirect()->back()->withError(
+        //         ['error'=>'Image is too big']
+        //     );
+        // }
+
+        $avatar = read();
+        
+        $imageSize = $avatar->size();
+        $imageRatio = $imageSize->aspectRatio();
+
+        /**
+         *  Save uploaded picture
+         */
+        $avatarUrl = $request->file('avatar')->storeAs('avatars', $userId);  // To specify disk,     add a third argument for storeAs() method
+        // $path = Storage::putFileAs('avatars', $request->file('avatar'), $request->user()->id)
+        
+        $user = User::where('id', $id)->first();
+        $user->avatar_url = $avatarUrl;
+        
+        return redirect()->back()
+        ->with('profile_edit', TRUE)
+        ->with('avatar_url', $user->avatar_url);
+    }
+
+
+
+
 }

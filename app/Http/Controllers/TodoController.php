@@ -17,17 +17,17 @@ class TodoController extends Controller
     /**
      *  Get index form
      */
-    public function homePage(Request $request): View
-    {        
-        $user = Auth::user();
-        $mode = $request->is_done;
+    // public function homePage(Request $request): View
+    // {        
+    //     $user = Auth::user();
+    //     $mode = $request->is_done;
 
-        return view('home', [
-            'user' => $user,
-            'todos' => $user->todos->where('is_done', '=', $mode),
-            'is_done'=>$mode
-        ]);
-    }
+    //     return view('home', [
+    //         'user' => $user,
+    //         'todos' => $user->todos->where('is_done', '=', $mode),
+    //         'is_done'=>$mode
+    //     ]);
+    // }
 
     // /**
     //  * Display a listing of the resource.
@@ -81,7 +81,7 @@ class TodoController extends Controller
         }        
 
         Todo::create($validated);
-        return redirect()->to(url()->previous());
+        return redirect()->route(url()->previous());
     }
 
     // /**
@@ -115,13 +115,13 @@ class TodoController extends Controller
     }
 
     /**
-     * Remove the specified resource from storage.
+     * Delete the specified resource from the DB
      */
     public function destroy(Request $request, User $user, Todo $todo)
     {
         if ($user-> id !== $todo->user_id) {
             abort('403','Unauthorized');
-        }
+            }
         
         $todo->delete();
         return redirect()->to(url()->previous());
