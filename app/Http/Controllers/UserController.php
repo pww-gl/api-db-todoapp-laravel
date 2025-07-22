@@ -11,6 +11,8 @@ use Illuminate\View\View;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
 use Intervention\Image\Laravel\Facades\Image;
+use Illuminate\Support\Facades\Storage;
+use Carbon\Carbon;
 
 class UserController extends Controller
 {
@@ -62,7 +64,7 @@ class UserController extends Controller
         $validator = Validator::make($request->all(), [
             'name'=>'required',
             'email'=>'required|email|unique:users',
-            'password'=>['sometimes','regex:/(?=.*[a-z])(?=.*[A-Z])(?=.*\d)[a-zA-Z\d]{11,}/m']  // {4,} not yet test 
+            'password'=>['sometimes','regex:/(?=.*[a-z])(?=.*[A-Z])(?=.*\d)[a-zA-Z\d]{11,}/m'] 
         ]);
 
         if ($validator->fails()) {
@@ -95,49 +97,65 @@ class UserController extends Controller
         $user = Auth::user();
         $mode = $request->is_done;
 
+        $signedUrl = Storage::disk('s3')->temporaryUrl(
+            $user->avatar_url, Carbon::now()->addMinutes(2)
+        );
+
+
         return view('home', [
             'user' => $user,
-            'avatar_url' => $user->avatar_url,
+            'avatar_url' => $signedUrl,
             'todos' => $user->todos->where('is_done', '=', $mode),
             'is_done'=>$mode,
         ]);
     }
 
-    public function storeAvatar(Request $request) {
+    /**
+     *  Get user profile page
+     */
+    public function profilePage(): View 
+    {    
+        $user = Auth::user();
         
-        $userId = $request->user()->id;
+        $signedUrl = Storage::disk('s3')->temporaryUrl(
+            $user->avatar_url, Carbon::now()->addMinutes(2)
+        );
 
-        if ($id !== Auth::id()) {
-            abort('422', 'Unauthorized');
-        };
+        return view('profile', [
+            'name'=>$user->name,
+            'email'=>$user->email,
+            'avatar_url'=>$signedUrl
+        ]);
+    }
 
-        // $avatar = $request->file('avatar');
-        // if ($avatar->getSize() > (int) 10^6) {
-        //     return redirect()->back()->withError(
-        //         ['error'=>'Image is too big']
-        //     );
-        // }
+    /**
+     *  Change user data
+     */
+    public function changeProfile(Request $request): RedirectResponse
+    {
+        $validated = $request->validate([
+            'avatar_picture' => 'required|mimes:jpg,jpeg,png|extensions:jpg,jpeg,png|max:1000|dimensions:ratio=1/1'
+        ]);
 
-        $avatar = read();
-        
-        $imageSize = $avatar->size();
-        $imageRatio = $imageSize->aspectRatio();
+        $user = Auth::user();
 
         /**
          *  Save uploaded picture
          */
-        $avatarUrl = $request->file('avatar')->storeAs('avatars', $userId);  // To specify disk,     add a third argument for storeAs() method
-        // $path = Storage::putFileAs('avatars', $request->file('avatar'), $request->user()->id)
-        
-        $user = User::where('id', $id)->first();
+        $avatarUploaded = $request->file('avatar_picture');
+        $imageName = $user->id . '.' . $avatarUploaded->extension();
+
+        $avatarUrl = $request->file('avatar_picture')->storeAs('/avatars', $imageName, 's3');  // To specify disk, add a third argument for storeAs() method
+
+        $user = Auth::user();
         $user->avatar_url = $avatarUrl;
-        
+        $user->save();
+
+        $signedUrl = Storage::disk('s3')->temporaryUrl(
+            $avatarUrl, Carbon::now()->addMinutes(2)
+        );
+
         return redirect()->back()
-        ->with('profile_edit', TRUE)
-        ->with('avatar_url', $user->avatar_url);
+        ->with('avatar_url', $signedUrl);
     }
-
-
-
-
 }

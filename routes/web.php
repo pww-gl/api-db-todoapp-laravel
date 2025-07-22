@@ -21,6 +21,14 @@ Route::resource('users.todos', TodoController::class)->except([
 ])->middleware('auth');
 
 Route::middleware('auth')->group(function() {
-    Route::get('/', [TodoController::class, 'homePage'])->name('home');
+    Route::get('/', [UserController::class, 'homePage'])->name('home-page');
     Route::post('/', [TodoController::class, 'homePage'])->name('toggle');
+});
+
+/**
+ *  For Profile modifications
+ */
+Route::middleware('auth')->group(function() {   
+    Route::get('profile', [UserController::class, 'profilePage'])->name('profile-page');
+    Route::put('profile/update', [UserController::class, 'changeProfile'])->name('profile.update');
 });

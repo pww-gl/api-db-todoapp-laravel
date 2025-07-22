@@ -24,12 +24,20 @@
             border-collapse: collapse;
             padding: 8px;
         }
-
     </style>
 </head>
 <body style="margin: 40px;">
     <div class="container">
         <h1 style="margin: 2px 0">Welcome, {{ Auth::user()->name }}</h1>
+
+        {{-- Profile Picture --}}
+        @php
+            $avatarPic = Auth::user()->avatar_url
+                        ? $avatar_url
+                        : 'https://placehold.co/100x100';
+        @endphp
+
+        <img src="{{ $avatarPic }}" alt="Profile Picture" style="max-width: 120px; max-height:120px; border-radius: 10%;">
 
         @if ($errors->any())
             <div class="alert alert-danger">
@@ -59,7 +67,7 @@
                 $buttonText = $is_done ? 'Switch to To-Do' : 'Switch to Done';
             @endphp
 
-            <a href="{{ route('home', ['is_done' => $nextStatus]) }}">
+            <a href="{{ route('home-page', ['is_done' => $nextStatus]) }}">
                 <button>{{ $buttonText }}</button>
             </a>
         </div>
