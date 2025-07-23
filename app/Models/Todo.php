@@ -17,4 +17,5 @@ class Todo extends Model
         'deadline'
     ];
     
+    protected $hidden = ['user_id'];
 }

@@ -19,6 +19,8 @@ Route::post('register', [UserController::class, 'register'])->name('register');
 Route::resource('users.todos', TodoController::class)->except([
     'create', 'show', 'edit','index'
 ])->middleware('auth');
+Route::get('download', [TodoController::class, 'exportCsv'])
+->middleware('auth')->name('download');
 
 Route::middleware('auth')->group(function() {
     Route::get('/', [UserController::class, 'homePage'])->name('home-page');

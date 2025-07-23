@@ -31,13 +31,13 @@
         <h1 style="margin: 2px 0">Welcome, {{ Auth::user()->name }}</h1>
 
         {{-- Profile Picture --}}
-        @php
+        {{-- @php
             $avatarPic = Auth::user()->avatar_url
                         ? $avatar_url
                         : 'https://placehold.co/100x100';
         @endphp
 
-        <img src="{{ $avatarPic }}" alt="Profile Picture" style="max-width: 120px; max-height:120px; border-radius: 10%;">
+        <img src="{{ $avatarPic }}" alt="Profile Picture" style="max-width: 120px; max-height:120px; border-radius: 10%;"> --}}
 
         @if ($errors->any())
             <div class="alert alert-danger">
@@ -74,6 +74,12 @@
 
         <h3 style="margin: 5px 0 0 0;">Showing {{ $is_done ? 'Done' : 'To-Do' }} Items</h3>
 
+        <!-- Download Button -->
+        <div style="text-align: center; margin: 10px 0;">
+            <a href="{{route('download')}}">
+                <button type="button">Save as CSV</button>
+            </a>
+        </div>
 
         <!-- Todo Table -->
         <table border="1" cellpadding="5" cellspacing="0">

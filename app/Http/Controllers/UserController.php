@@ -97,14 +97,14 @@ class UserController extends Controller
         $user = Auth::user();
         $mode = $request->is_done;
 
-        $signedUrl = Storage::disk('s3')->temporaryUrl(
-            $user->avatar_url, Carbon::now()->addMinutes(2)
-        );
+        // $signedUrl = Storage::disk('s3')->temporaryUrl(
+        //     $user->avatar_url, Carbon::now()->addMinutes(2)
+        // );
 
 
         return view('home', [
             'user' => $user,
-            'avatar_url' => $signedUrl,
+            // 'avatar_url' => $signedUrl,
             'todos' => $user->todos->where('is_done', '=', $mode),
             'is_done'=>$mode,
         ]);
@@ -145,15 +145,15 @@ class UserController extends Controller
         $avatarUploaded = $request->file('avatar_picture');
         $imageName = $user->id . '.' . $avatarUploaded->extension();
 
-        $avatarUrl = $request->file('avatar_picture')->storeAs('/avatars', $imageName, 's3');  // To specify disk, add a third argument for storeAs() method
+            // $avatarUrl = $request->file('avatar_picture')->storeAs('/avatars', $imageName, 's3');  // To specify disk, add a third argument for storeAs() method
 
         $user = Auth::user();
         $user->avatar_url = $avatarUrl;
         $user->save();
 
-        $signedUrl = Storage::disk('s3')->temporaryUrl(
-            $avatarUrl, Carbon::now()->addMinutes(2)
-        );
+        // $signedUrl = Storage::disk('s3')->temporaryUrl(
+        //     $avatarUrl, Carbon::now()->addMinutes(2)
+        // );
 
         return redirect()->back()
         ->with('avatar_url', $signedUrl);

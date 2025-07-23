@@ -11,57 +11,10 @@ use Illuminate\Http\Request;
 use Illuminate\View\View;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Http\Response;
 
 class TodoController extends Controller
-{
-    /**
-     *  Get index form
-     */
-    // public function homePage(Request $request): View
-    // {        
-    //     $user = Auth::user();
-    //     $mode = $request->is_done;
-
-    //     return view('home', [
-    //         'user' => $user,
-    //         'todos' => $user->todos->where('is_done', '=', $mode),
-    //         'is_done'=>$mode
-    //     ]);
-    // }
-
-    // /**
-    //  * Display a listing of the resource.
-    //  */
-    // public function indexTodo()
-    // {
-        // $id = Auth::id();
-        // $user = User::find($id);
-// 
-        // return view('home', [
-            // 'user' => $user,
-            // 'todos' => $user->todos->where('is_done', '=', FALSE),
-        // ]);
-    // }
-// 
-    /**
-     * Show the form for creating a new resource.
-     */
-    // public function create(Request $request)
-    // {
-        // 
-    // }
-// 
-    // public function indexDone(Request $request, User $user): View
-    // {
-        // $id = Auth::id();
-        // $user = User::find($id);
-// 
-        // return view('home', [
-            // 'user' => $user,
-            // 'todos' => $user->todos->where('is_done', '=', TRUE),
-        // ]);
-    // }
-    
+{    
     /**
      * Store a newly created resource in storage.
      */
@@ -83,22 +36,6 @@ class TodoController extends Controller
         Todo::create($validated);
         return redirect()->route(url()->previous());
     }
-
-    // /**
-    //  * Display the specified resource.
-    //  */
-    // public function show(Todo $todo)
-    // {
-        
-    // }
-
-    // /**
-    //  * Show the form for editing the specified resource.
-    //  */
-    // public function edit(Todo $todo)
-    // {
-        
-    // }
 
     /**
      *  Update the specified resource in storage.
@@ -134,5 +71,63 @@ class TodoController extends Controller
      *  Fungsi import -> dari csv atau data lain, balik ke export
      *  Manipulasi file
      */
-}
 
+    
+    public function exportCsv() {
+        $user = Auth::user();
+        $todos = Todo::where('user_id', $user->id)->get();
+        
+        $columns = array_keys($todos[0]->toArray());
+        // dd($columns);
+        $todosArray = $todos->toArray();
+        for ($x = 0; $x < count($todosArray); $x++) {
+            $rows[$x] = array_values($todosArray[$x]);
+        }
+        // dd($rows);
+
+        $csvName = $user->name.'-todos.csv';
+        $csvFile = fopen($csvName, 'w');    //Specify the path for temp .csv at server
+        fputcsv($csvFile, $columns);
+        foreach($rows as $row){
+            fputcsv($csvFile, $row);
+        }
+        fclose($csvFile);
+        
+        return response()->download($csvName)->deleteFileAfterSend();
+    }   
+
+    public function importCsv(Request $request) {
+        $csv = $request->file('csv');
+        
+        if (!$csv) {
+            return redirect()->back()->withError('Upload Failed');
+        }
+
+        $csvFile = fopen($csv->path(), 'r');
+        $column = fgetcsv($csvFile);
+        $data = [];
+
+        while ($row = fgetcsv($csvFile)!==false) {
+            $data[] = array_combine($column, $row);
+        }
+
+        $user = Auth::user();
+
+        // // Guard to check first row of csv = attribute?  
+        // $key = array_shift($data);
+
+        // $keyCollect = collect([$key]);
+        // foreach ($keyCollect as $key) {
+        //     $dataArray[] = $keyCollect->combine([$data]);
+        // }
+        
+
+        foreach ('') {
+            $newTodo = $data[$x];
+            DB::table('todos')->insert([
+                'user_id'=>$user->id,
+                'content'=>$newTodo[]
+            ]);
+        }
+    }
+}
