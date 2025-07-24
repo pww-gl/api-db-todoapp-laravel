@@ -64,7 +64,7 @@ class UserController extends Controller
         $validator = Validator::make($request->all(), [
             'name'=>'required',
             'email'=>'required|email|unique:users',
-            'password'=>['sometimes','regex:/(?=.*[a-z])(?=.*[A-Z])(?=.*\d)[a-zA-Z\d]{11,}/m'] 
+            'password'=>'sometimes|regex:/(?=.*[a-z])(?=.*[A-Z])(?=.*\d)[a-zA-Z\d]{11,}/m' 
         ]);
 
         if ($validator->fails()) {
@@ -117,9 +117,11 @@ class UserController extends Controller
     {    
         $user = Auth::user();
         
-        $signedUrl = Storage::disk('s3')->temporaryUrl(
-            $user->avatar_url, Carbon::now()->addMinutes(2)
-        );
+        $signedUrl = 
+        // Storage::disk('s3')->temporaryUrl(
+            // $user->avatar_url, Carbon::now()->addMinutes(2)
+        // ) 
+        Storage::url('avatar-placeholder.jpg');
 
         return view('profile', [
             'name'=>$user->name,
@@ -133,8 +135,15 @@ class UserController extends Controller
      */
     public function changeProfile(Request $request): RedirectResponse
     {
-        $validated = $request->validate([
-            'avatar_picture' => 'required|mimes:jpg,jpeg,png|extensions:jpg,jpeg,png|max:1000|dimensions:ratio=1/1'
+        /**
+         *  Logic buat klo gaada user profile data yg diganti gimana?????
+         */
+
+        $request->validate([
+            'name' => 'nullable|string|max:256',
+            'password'=> 'nullable|regex:/(?=.*[a-z])(?=.*[A-Z])(?=.*[\d])[a-zA-Z\d]/m',
+            'email' => 'nullable|email',  
+            'avatar_picture' => 'sometimes|mimes:jpg,jpeg,png|extensions:jpg,jpeg,png|max:1000|dimensions:ratio=1/1'
         ]);
 
         $user = Auth::user();
@@ -142,20 +151,27 @@ class UserController extends Controller
         /**
          *  Save uploaded picture
          */
-        $avatarUploaded = $request->file('avatar_picture');
-        $imageName = $user->id . '.' . $avatarUploaded->extension();
+        if ($request->avatar_picture){
+            $avatarUploaded = $request->file('avatar_picture');
+            $imageName = $user->id . '.' . $avatarUploaded->extension();
+            $avatarUrl = $request->file('avatar_picture')->storeAs('/avatars', $imageName, 's3');  // To specify disk, add a third argument for storeAs() method
+        } else {$avatarUrl = null;}
+          
 
-            // $avatarUrl = $request->file('avatar_picture')->storeAs('/avatars', $imageName, 's3');  // To specify disk, add a third argument for storeAs() method
-
+        /**
+         *  Save the new values to Table
+         */
         $user = Auth::user();
-        $user->avatar_url = $avatarUrl;
+        $user->name = $request->name ?: $user->name;
+        $user->email = $request->email ?: $user->email;        
+        $user->password = $request->password ?: $user->password;
+        $user->avatar_url = $avatarUrl ?: $user->avatar_url;
         $user->save();
 
         // $signedUrl = Storage::disk('s3')->temporaryUrl(
         //     $avatarUrl, Carbon::now()->addMinutes(2)
         // );
 
-        return redirect()->back()
-        ->with('avatar_url', $signedUrl);
+        return redirect()->back();
     }
 }

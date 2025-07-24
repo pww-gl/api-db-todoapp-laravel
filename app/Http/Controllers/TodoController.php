@@ -34,7 +34,7 @@ class TodoController extends Controller
         }        
 
         Todo::create($validated);
-        return redirect()->route(url()->previous());
+        return redirect()->back();
     }
 
     /**
@@ -73,7 +73,8 @@ class TodoController extends Controller
      */
 
     
-    public function exportCsv() {
+    public function exportCsv() 
+    {
         $user = Auth::user();
         $todos = Todo::where('user_id', $user->id)->get();
         
@@ -96,8 +97,13 @@ class TodoController extends Controller
         return response()->download($csvName)->deleteFileAfterSend();
     }   
 
-    public function importCsv(Request $request) {
-        $csv = $request->file('csv');
+    public function importCsv(Request $request) 
+    {
+        $request->validate([
+            'csvImport'=> 'required|file|mimes:csv,txt' //might need to set max: limit too
+        ]);
+
+        $csv = $request->file('csvImport');
         
         if (!$csv) {
             return redirect()->back()->withError('Upload Failed');
@@ -107,9 +113,10 @@ class TodoController extends Controller
         $column = fgetcsv($csvFile);
         $data = [];
 
-        while ($row = fgetcsv($csvFile)!==false) {
+        while (($row = fgetcsv($csvFile)) !== false) {
             $data[] = array_combine($column, $row);
         }
+        fclose($csvFile);
 
         $user = Auth::user();
 
@@ -121,13 +128,17 @@ class TodoController extends Controller
         //     $dataArray[] = $keyCollect->combine([$data]);
         // }
         
-
-        foreach ('') {
-            $newTodo = $data[$x];
-            DB::table('todos')->insert([
-                'user_id'=>$user->id,
-                'content'=>$newTodo[]
+        foreach ($data as $x=>$row) {
+            $newTodo = $data[$x]; 
+            Todo::create([
+                'user_id'=>Auth::id(), 
+                'content'=>$newTodo['content'], 
+                'deadline'=>$newTodo['deadline'] ?? NULL,
+                'created_at'=>$newTodo['created_at'],
+                'updated_at'=>$newTodo['updated_at'] ?? NULL
             ]);
         }
+        
+        return redirect()->back();
     }
 }

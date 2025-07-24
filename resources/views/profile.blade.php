@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>User Profile</title>
+    <title>ウーサープロファイル</title>
     <style>
         .container {
             display: flex;
@@ -37,13 +37,19 @@
 </head>
 <body style="margin: 40px;">
     <div class="container">
-        <h2>My Profile</h2>
-
+        <h2 style="margin-bottom: 1px">My Profile</h2>
+        
+        <!-- Homepage Button -->
+        <div style="text-align: center; margin: 2px 0;">
+            <a href="{{ route('home-page') }}">
+                <button type="button">Home</button>
+            </a>
+        </div>
+        
         <div class="profile-info">
             @php
                 $avatarPicture = Auth::user()->avatar_url
-                    ? $avatar_url
-                    : 'https://placehold.co/100x100';
+                    ?: asset('storage/avatar-placeholder.jpg');
             @endphp
 
             <img src="{{ $avatarPicture }}" alt="Profile Picture" style="max-width: 120px; max-height:120px; border-radius: 10%;">
@@ -69,16 +75,19 @@
                 @csrf
                 @method('PUT')
 
-                {{-- <label for="name">Name:</label> --}}
-                {{-- <input type="text" name="name" value="{{ old('name', $user->name) }}" required> --}}
-{{--  --}}
-                {{-- <label for="password">New Password:</label> --}}
-                {{-- <input type="password" name="password" placeholder="Enter new password"> --}}
+                <label for="name">Name:</label>
+                <input type="text" name="name" value="{{ old('name', Auth::user()) }}">
+
+                <label for="email">Email:</label>
+                <input type="text" name="email" value="{{ old('email', Auth::user()) }}">
+
+                <label for="password">New Password:</label>
+                <input type="password" name="password" placeholder="Enter new password">
 
                 <label for="avatar">Profile Picture:</label>
 
                 <input type="file" name="avatar_picture" accept="image/*" onchange="previewImage(event)">
-                 <progress id="upload-progress" value="0" max="100" style="display:none; width:100%;"></progress>
+                <progress id="upload-progress" value="0" max="100" style="display:none; width:100%;"></progress>
                 <img id="preview" src="#" alt="Image Preview" style="display:none;">
 
                 <button type="submit">Save Changes</button>

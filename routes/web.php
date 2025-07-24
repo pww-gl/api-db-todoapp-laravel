@@ -19,8 +19,11 @@ Route::post('register', [UserController::class, 'register'])->name('register');
 Route::resource('users.todos', TodoController::class)->except([
     'create', 'show', 'edit','index'
 ])->middleware('auth');
-Route::get('download', [TodoController::class, 'exportCsv'])
-->middleware('auth')->name('download');
+
+Route::get('export', [TodoController::class, 'exportCsv'])
+->middleware('auth')->name('export');
+Route::post('import', [TodoController::class, 'importCsv'])
+->middleware('auth')->name('import');
 
 Route::middleware('auth')->group(function() {
     Route::get('/', [UserController::class, 'homePage'])->name('home-page');
