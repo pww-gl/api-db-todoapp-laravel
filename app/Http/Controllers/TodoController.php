@@ -12,6 +12,9 @@ use Illuminate\View\View;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Http\Response;
+use Illuminate\Http\RedirectResponse;
+
+use Illuminate\Support\MessageBag;
 
 class TodoController extends Controller
 {    
@@ -21,19 +24,24 @@ class TodoController extends Controller
     public function store(Request $request)
     {
         $validated = $request->validate([
-            'user_id'  => 'required',
-            'content'  => 'required|unique:todos',
-            'deadline' => 'nullable|date',
-        //    'is_done'  => 'sometimes|boolean',    
+            'user_id'  => 'required|integer',
+            'visibility' => 'required|string|enum:private,public',
+            'content'  => 'required|string',
+            'deadline' => 'nullable|date',    
         ]);
+
+        $check = Todo::where('user_id', '=', $validated['user_id'])
+        ->where('content', '=', $validated['content'])
+        ->where('deadline', '=', $validated['deadline'])
+        ->first();
+
+        if ($check) {
+            $error = 'There is already todo = "' . $validated['content'] . '" with the same deadline for this user';
+            return redirect()->back()->withErrors($error);
+        } else {
+            Todo::create($validated);
+        }
         
-        $id = Auth::id();
-
-        if ($id !== (int) $request->user_id) {
-            abort('403','Unauthorized');
-        }        
-
-        Todo::create($validated);
         return redirect()->back();
     }
 
@@ -45,6 +53,12 @@ class TodoController extends Controller
     {
         $entry = $user->todos->find($todo->id);
         
+        if (isset($request["content"]) && $request["content"] !== $entry->content) {
+                $is_edited = true;
+        }
+
+        $entry->content = $request["content"];
+        $entry->visibility = $request["visibility"];
         $entry->is_done = $request["is_done"];
         $entry->save();
 
@@ -72,45 +86,54 @@ class TodoController extends Controller
      *  Manipulasi file
      */
 
-    
+    /**
+     *  Memberikan data dalam file .csv ke user (EXPORT) 
+     */
     public function exportCsv() 
     {
         $user = Auth::user();
         $todos = Todo::where('user_id', $user->id)->get();
         
+        if ($todos->isEmpty()) {
+            return redirect()->back()->withErrors('No todos to be exported');
+        }
+
         $columns = array_keys($todos[0]->toArray());
-        // dd($columns);
+
         $todosArray = $todos->toArray();
+        
         for ($x = 0; $x < count($todosArray); $x++) {
             $rows[$x] = array_values($todosArray[$x]);
         }
-        // dd($rows);
 
         $csvName = $user->name.'-todos.csv';
         $csvFile = fopen($csvName, 'w');    //Specify the path for temp .csv at server
-        fputcsv($csvFile, $columns);
+        fputcsv($csvFile, $columns);    //Row pertama = column table (content, deadline, etc)
         foreach($rows as $row){
             fputcsv($csvFile, $row);
         }
-        fclose($csvFile);
+        fclose($csvFile);   
         
         return response()->download($csvName)->deleteFileAfterSend();
     }   
 
+    /**
+     *  Masukin Todo data dari CSV ke Aplikasi (IMPORT) 
+     */
     public function importCsv(Request $request) 
     {
         $request->validate([
-            'csvImport'=> 'required|file|mimes:csv,txt' //might need to set max: limit too
+            'csvImport'=> 'required|file|mimes:csv,txt|extensions:csv,txt' //might need to set max: limit too
         ]);
 
         $csv = $request->file('csvImport');
         
         if (!$csv) {
-            return redirect()->back()->withError('Upload Failed');
+            return redirect()->back()->withErrors('Upload Failed');
         }
 
         $csvFile = fopen($csv->path(), 'r');
-        $column = fgetcsv($csvFile);
+        $column = fgetcsv($csvFile);    //parsing table column (content, deadline, etc) of csv
         $data = [];
 
         while (($row = fgetcsv($csvFile)) !== false) {
@@ -119,26 +142,31 @@ class TodoController extends Controller
         fclose($csvFile);
 
         $user = Auth::user();
-
-        // // Guard to check first row of csv = attribute?  
-        // $key = array_shift($data);
-
-        // $keyCollect = collect([$key]);
-        // foreach ($keyCollect as $key) {
-        //     $dataArray[] = $keyCollect->combine([$data]);
-        // }
         
+        $userTodos = $user->todos;
+        $errors = new MessageBag;   // Boleh kah ini?
+
         foreach ($data as $x=>$row) {
             $newTodo = $data[$x]; 
-            Todo::create([
-                'user_id'=>Auth::id(), 
-                'content'=>$newTodo['content'], 
-                'deadline'=>$newTodo['deadline'] ?? NULL,
-                'created_at'=>$newTodo['created_at'],
-                'updated_at'=>$newTodo['updated_at'] ?? NULL
-            ]);
+            if ($newTodo = Todo::where('content',$newTodo['content'])
+                ->where('deadline', $newTodo['deadline'])
+                ->first()) {
+                $errors->add('error #'.$x,
+                        'Todo = "'.$newTodo['content'].'" with the same deadline already exist for your account');
+            } else {
+                Todo::create([
+                    'user_id'=>Auth::id(), 
+                    'visibility'=>$newTodo['visibility'] ?? 'private',
+                    'content'=>$newTodo['content'], 
+                    'deadline'=>$newTodo['deadline'] ?? NULL,
+                    'is_done'=>$newTodo['is_done'] ?? FALSE,
+                    'is_edited'=>$newTodo['is_edited'] ?? FALSE,
+                    'created_at'=>$newTodo['created_at'],
+                    'updated_at'=>$newTodo['updated_at'] ?? NULL
+                ]);
+            }
         }
-        
-        return redirect()->back();
+    
+        return redirect()->back()->withErrors($errors);
     }
 }

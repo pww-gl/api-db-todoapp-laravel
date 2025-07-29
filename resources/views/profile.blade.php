@@ -49,11 +49,12 @@
         <div class="profile-info">
             @php
                 $avatarPicture = Auth::user()->avatar_url
-                    ?: asset('storage/avatar-placeholder.jpg');
+                ? $avatar_url
+                : asset('storage/avatar-placeholder.jpg');
             @endphp
 
             <img src="{{ $avatarPicture }}" alt="Profile Picture" style="max-width: 120px; max-height:120px; border-radius: 10%;">
-
+            
             <p style="margin-bottom: 2px;"><strong>Name:</strong> {{ $name }}</p>
             <p style="margin-top: 2px;"><strong>Email:</strong> {{ $email }}</p>
             
@@ -94,6 +95,11 @@
             </form>
         </div>
     </div>
+
+    <form method="POST" action="{{ route('logout') }}">
+        @csrf
+        <button type="submit">Logout</button>
+    </form>
 
     <script>
         function toggleEditForm() {

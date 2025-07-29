@@ -14,6 +14,8 @@ use Intervention\Image\Laravel\Facades\Image;
 use Illuminate\Support\Facades\Storage;
 use Carbon\Carbon;
 
+// use Illuminate\Support\MessageBag;
+
 class UserController extends Controller
 {
     public function loginForm(): View 
@@ -41,7 +43,6 @@ class UserController extends Controller
             $request->session()->regenerate();
             $id = Auth::id();
             return redirect()->intended('/');
-        
         }
 
         return back()->withErrors([
@@ -92,53 +93,56 @@ class UserController extends Controller
      * fokus, manipulasi file
      */
 
+
+    /**
+     *  Kirim data untuk Home-Page
+     */
     public function homePage(Request $request): View
     {        
         $user = Auth::user();
         $mode = $request->is_done;
+        $avatarUrl = $user->avatar_url; 
 
-        // $signedUrl = Storage::disk('s3')->temporaryUrl(
-        //     $user->avatar_url, Carbon::now()->addMinutes(2)
-        // );
-
-
+        if ($avatarUrl) {
+            $signedUrl = Storage::disk('s3')->temporaryUrl(
+                $user->avatar_url, now()->addMinutes(2)
+            );
+        }
+            
         return view('home', [
             'user' => $user,
-            // 'avatar_url' => $signedUrl,
+            'avatar_url' => $signedUrl ?? null,
             'todos' => $user->todos->where('is_done', '=', $mode),
             'is_done'=>$mode,
         ]);
     }
 
     /**
-     *  Get user profile page
+     *  Kirim data user buat nampilin Profile Page
      */
     public function profilePage(): View 
     {    
         $user = Auth::user();
-        
-        $signedUrl = 
-        // Storage::disk('s3')->temporaryUrl(
-            // $user->avatar_url, Carbon::now()->addMinutes(2)
-        // ) 
-        Storage::url('avatar-placeholder.jpg');
+        $avatarUrl = $user->avatar_url;
+
+        if ($avatarUrl) {
+            $signedUrl = Storage::disk('s3')->temporaryUrl(
+                $user->avatar_url, now()->addMinutes(2)
+            );
+        }
 
         return view('profile', [
             'name'=>$user->name,
             'email'=>$user->email,
-            'avatar_url'=>$signedUrl
+            'avatar_url'=>$signedUrl ?? null
         ]);
     }
 
     /**
-     *  Change user data
+     *  Merubah data user di profile page
      */
     public function changeProfile(Request $request): RedirectResponse
     {
-        /**
-         *  Logic buat klo gaada user profile data yg diganti gimana?????
-         */
-
         $request->validate([
             'name' => 'nullable|string|max:256',
             'password'=> 'nullable|regex:/(?=.*[a-z])(?=.*[A-Z])(?=.*[\d])[a-zA-Z\d]/m',
@@ -149,7 +153,7 @@ class UserController extends Controller
         $user = Auth::user();
 
         /**
-         *  Save uploaded picture
+         *  Menyimpan foto ke s3
          */
         if ($request->avatar_picture){
             $avatarUploaded = $request->file('avatar_picture');
@@ -157,20 +161,15 @@ class UserController extends Controller
             $avatarUrl = $request->file('avatar_picture')->storeAs('/avatars', $imageName, 's3');  // To specify disk, add a third argument for storeAs() method
         } else {$avatarUrl = null;}
           
-
         /**
-         *  Save the new values to Table
+         *  Menyimpan data baru to DB
          */
         $user = Auth::user();
-        $user->name = $request->name ?: $user->name;
-        $user->email = $request->email ?: $user->email;        
-        $user->password = $request->password ?: $user->password;
-        $user->avatar_url = $avatarUrl ?: $user->avatar_url;
+        $user->name = $request->name ?? $user->name;
+        $user->email = $request->email ?? $user->email;        
+        $user->password = $request->password ?? $user->password;
+        $user->avatar_url = $avatarUrl ?? $user->avatar_url;
         $user->save();
-
-        // $signedUrl = Storage::disk('s3')->temporaryUrl(
-        //     $avatarUrl, Carbon::now()->addMinutes(2)
-        // );
 
         return redirect()->back();
     }
