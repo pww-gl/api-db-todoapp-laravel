@@ -118,7 +118,7 @@
                 @foreach ($todos as $todo)
                     <tr>
                         <td>{{ $todo->content }}</td>
-                        <td>{{ $todo->deadline ?? '-' }}</td>
+                        <td>{{ $todo->deadline ?? 'No Deadline' }}</td>
                         <td>{{ $todo->is_done ? 'Done' : 'Not Yet' }}</td>
                         <td>
                             @if ($todo->is_done)
