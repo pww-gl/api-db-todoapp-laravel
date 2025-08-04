@@ -63,6 +63,17 @@
             <input type="hidden" name="user_id" value="{{ Auth::id() }}">
             <input type="text" name="content" placeholder="Todo content" required>
             <input type="date" name="deadline">
+            
+            <!-- Visibility toggle -->
+            <div style="margin: 5px 0">
+                <label>
+                    <input type="radio" name="visibility" value="public" > Public
+                </label>
+                <label>
+                    <input type="radio" name="visibility" value="private" checked> Private
+                </label>
+            </div>
+            
             <button type="submit">Add Todo</button>
         </form>
 
@@ -106,49 +117,62 @@
 
         <!-- Todo Table -->
         <table border="1" cellpadding="5" cellspacing="0">
-            <thead>
+        <thead>
+            <tr>
+                <th>Content</th>
+                <th>Deadline</th>
+                <th>Status</th>
+                <th>Visibility</th> <!-- NEW -->
+                <th>Actions</th>
+            </tr>
+        </thead>
+
+        <tbody>
+            @foreach ($todos as $todo)
                 <tr>
-                    <th>Content</th>
-                    <th>Deadline</th>
-                    <th>Status</th>
-                    <th>Actions</th>
-                </tr>
-            </thead>
-            <tbody>
-                @foreach ($todos as $todo)
-                    <tr>
-                        <td>{{ $todo->content }}</td>
-                        <td>{{ $todo->deadline ?? 'No Deadline' }}</td>
-                        <td>{{ $todo->is_done ? 'Done' : 'Not Yet' }}</td>
-                        <td>
-                            @if ($todo->is_done)
-                                <!-- Undo Done -->
-                                <form action="{{ route('users.todos.update', [Auth::user()->id, $todo->id]) }}" method="POST" style="display:inline;">
-                                    @csrf
-                                    @method('PUT')
-                                    <input type="hidden" name="is_done" value="0">
-                                    <button type="submit">Undo</button>
-                                </form>
-                            @else
-                                <!-- Mark as Done -->
-                                <form action="{{ route('users.todos.update', [Auth::user()->id, $todo->id]) }}" method="POST" style="display:inline;">
-                                    @csrf
-                                    @method('PUT')
-                                    <input type="hidden" name="is_done" value="1">
-                                    <button type="submit">Mark Done</button>
-                                </form>
-                            @endif
-                            <!-- Delete -->
-                            <form action="{{ route('users.todos.destroy', [Auth::user()->id, $todo->id]) }}" method="POST" style="display:inline;">
+                    <td>{{ $todo->content }}</td>
+                    <td>{{ $todo->deadline ?? 'No Deadline' }}</td>
+                    <td>{{ $todo->is_done ? 'Done' : 'Not Yet' }}</td>
+                    <td>{{ ucfirst($todo->visibility) }}</td> <!-- Shows 'Public' or 'Private' -->
+                    <td>
+                        @if ($todo->is_done)
+                            <!-- Undo Done -->
+                            <form action="{{ route('users.todos.update', [Auth::user()->id, $todo->id]) }}" method="POST" style="display:inline;">
                                 @csrf
-                                @method('DELETE')
-                                <button type="submit">Delete</button>
+                                @method('PUT')
+                                <input type="hidden" name="is_done" value="0">
+                                <button type="submit">Undo</button>
                             </form>
-                        </td>
-                    </tr>
-                @endforeach
-            </tbody>
-        </table>
+                        @else
+                            <!-- Mark as Done -->
+                            <form action="{{ route('users.todos.update', [Auth::user()->id, $todo->id]) }}" method="POST" style="display:inline;">
+                                @csrf
+                                @method('PUT')
+                                <input type="hidden" name="is_done" value="1">
+                                <button type="submit">Mark Done</button>
+                            </form>
+                        @endif
+                        
+                        <!-- Toggle Visibility -->
+                        <form action="{{ route('users.todos.update', [Auth::user()->id, $todo->id]) }}" method="POST" style="display:inline;">
+                            @csrf
+                            @method('PUT')
+                            <input type="hidden" name="visibility" value="{{ $todo->visibility === 'public' ? 'private' : 'public' }}">
+                            <button type="submit">
+                                Set {{ $todo->visibility === 'public' ? 'Private' : 'Public' }}
+                            </button>
+                        </form>
+                    
+                        <!-- Delete -->
+                        <form action="{{ route('users.todos.destroy', [Auth::user()->id, $todo->id]) }}" method="POST" style="display:inline;">
+                            @csrf
+                            @method('DELETE')
+                            <button type="submit">Delete</button>
+                        </form>
+                    </td>
+                </tr>
+            @endforeach
+        </tbody>
         
         <form method="POST" action="{{ route('logout') }}">
             @csrf

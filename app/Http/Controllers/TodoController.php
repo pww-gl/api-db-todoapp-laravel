@@ -13,6 +13,7 @@ use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Http\Response;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Validation\Rule;
 
 use Illuminate\Support\MessageBag;
 
@@ -25,7 +26,7 @@ class TodoController extends Controller
     {
         $validated = $request->validate([
             'user_id'  => 'required|integer',
-            'visibility' => 'required|string|enum:private,public',
+            'visibility' => ['required', 'string', 'regex:/public|private/'],
             'content'  => 'required|string',
             'deadline' => 'nullable|date',    
         ]);
@@ -51,15 +52,20 @@ class TodoController extends Controller
      */
     public function update(Request $request, User $user, Todo $todo)
     {
+        // dd($request);
+        
         $entry = $user->todos->find($todo->id);
         
-        if (isset($request["content"]) && $request["content"] !== $entry->content) {
+        if (isset($request["content"]) && $request["content"] !== $entry->getOriginal("content")) {
                 $is_edited = true;
         }
 
-        $entry->content = $request["content"];
-        $entry->visibility = $request["visibility"];
-        $entry->is_done = $request["is_done"];
+        $entry->content = $request["content"] ?? $entry->content;
+        $entry->save();
+
+        $entry->timestamps = false;
+        $entry->is_done = $request["is_done"] ?? $entry->getOriginal("is_done");
+        $entry->visibility = $request["visibility"] ?? $entry->getOriginal("visibility");
         $entry->save();
 
         return redirect()->to(url()->previous());
@@ -169,4 +175,5 @@ class TodoController extends Controller
     
         return redirect()->back()->withErrors($errors);
     }
+
 }

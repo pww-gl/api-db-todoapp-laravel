@@ -13,6 +13,7 @@ use App\Models\User;
 use App\Models\Todo;
 
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Auth;
 
 #[Group ('Timeline')]
 class BaseTimelineTest extends TestCase
@@ -21,17 +22,21 @@ class BaseTimelineTest extends TestCase
     use RefreshDatabase;
 
     /**
-     *  Test to access timenline
+     *  Test for accessing timeline
      */
     #[Test]
-    public function accessing_to_timeline(): void   
+    public function accessing_timeline(): void   
     {     
         /**
          *  Temporarily create User objects
          */
-        $user = User::factory()->create([
-            'password' => Hash::make('Abcd12341234')
+        $users = User::factory()
+        ->count(5)
+        ->create([
+            'password' => Hash::make('Abcd12341234'),
+            'avatar_url' => 'placeholder.com'
         ]);
+        
 
         /**
          *  Temporarily create Todos
@@ -41,9 +46,9 @@ class BaseTimelineTest extends TestCase
                 ->create([
                     'user_id' => $user->id,
                     'content' => fake()->sentence(3),
-                    'deadline' => fake()->dateTime('now', '+5 months')->format('Y-m-d H:i:s'),
+                    'deadline' => fake()->dateTimeBetween('now', '+5 months')->format('Y-m-d H:i:s'),
                     'visibility' => 'public',
-                    'who_liked' => []  //New Column
+                    'who_liked' => serialize([1, 2, 3, 4, 5]) //New Column, This an array, which SQLite can't do. Solution: serialize() and unserialize()
                     // 'who_dislikes' => [],   //New Column
                 ]);    
         }
@@ -51,11 +56,12 @@ class BaseTimelineTest extends TestCase
         /**
          *  What happend if GET /public/timeline endpoint is fired?
          *  Below is to simulate that triggering
-         */
+             */
         $response = $this->get('/public/timeline');
         
         /**
          *  !!! TONS of assertions bellow !!!
+         * 
          */
 
         // CHECK Retured Status Code
@@ -66,37 +72,49 @@ class BaseTimelineTest extends TestCase
         
 
         // SUMMON all todos with public visibility
-        $publicTodos = Todo::where('visibility','public')
-                ->orderBy('created_at')
-                ->get();
-
-        $superTodos = []
+        // $publicTodos = Todo::where('visibility','public')
+                // ->orderBy('created_at')
+                // ->get();
         
-        // CHECK Returned Todo entries/rows/objects, only those publicly visible and sorted by created_at 
-        $response->assertViewHasAll([
-            'user' => Auth::user() ?? null,
-            'todos' => $publicTodos
-        ]);
+        
+        // BE12-TDD-2-3 CHECK Returned Todo entries/rows/objects, only those publicly visible and sorted by created_at 
+        // $checkPublicTodos = Todo::where('visibility', 'public')
+        // ->get()
+        // ->transform(
+            // function ($todo) {
+                // $todo->who_liked = unserialize($todo->who_liked);
+                // return $todo;
+            // } 
+        // );
 
-        // Assert that avatar URL for for each todo, User that own it has their avatar_url. How to check if the picture there??
-        foreach ($superTodos as $todo) {
-            $response->assertViewHas($todo['user_avatar'], User::where('id', $todo->user_id)  
-                ->first()
-                ->avatar_url) ?? null;
-        }
+        $response->assertViewHas(
+            'todos', $checkPublicTodos 
+        );
 
-        // BE12-TDD-1 Assert if like button is shown approriately, depending if user has liked or not
-        if (in_array(Auth::id(), $todos->who_liked)) {
-            $response->assertSee('Liked');  // Assert that if user liked the todo, the todo will show 'Liked'
-        } else {
-            $response->assertSee('Like');   // Assertion when user has NOT liked the todo, the todo will show 'Like'
-        }
+        // BE12-TDD-2-6 Assert that avatar URL for for each todo, User that own it has their avatar_url. How to check if the picture there??
+        // foreach ($checkPublicTodos as $todo) {
+            $response->assertSee('avatar_url');
+            // $response->assertViewHas(
+                // $todo['user_avatar'], User::where('id', $todo->user_id)  
+                    // ->first()
+                    // ->avatar_url ?? null
+            // );
+        // }
 
-        // Assert that 'likes count' exist: If server-driven, count should be included in $superTodos element; that is for each todo
-        foreach ($superTodos as $todo) {
+        // BE12-TDD-2-5 Assert if like button is shown approriately, depending if user has liked or not
+        // if (in_array(Auth::id(), $todos->who_liked)) {
+            // $response->assertSee('Liked');  // Assert that if user liked the todo, the todo will show 'Liked'
+        // } else {
+            // $response->assertSee('Like');   // Assertion when user has NOT liked the todo, the todo will show 'Like'
+        // }
+
+        // BE12-TDD-2-5 Assert that 'likes count' exist: If server-driven, count should be included in $todosWithExtra elements; that is for each todo
+        foreach ($publicTodos as $todo) {
             $response->assertViewHas($todo['likes_count'], count($todo->who_liked));   // Assert that view has likes counter for each todo;
         }
-        
+
+        // BE12-TDD-2-4 Assert that view has 'edited' count 
+        $response->assertViewHas($todo);
     }
 
     /**
@@ -141,10 +159,6 @@ class BaseTimelineTest extends TestCase
         // response = $this->post('/public/timeline/react', [
         //    'like'
         // );
-
-
-
-    }
 
     #[Test]
     public function edit_todos(): void

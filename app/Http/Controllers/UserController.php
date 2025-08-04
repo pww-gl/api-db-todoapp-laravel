@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 
 use App\Models\User;
+
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\View\View;
@@ -108,11 +109,13 @@ class UserController extends Controller
                 $user->avatar_url, now()->addMinutes(2)
             );
         }
-            
+        // dd($user->todos->where('is_done', '=', true));
+
         return view('home', [
             'user' => $user,
             'avatar_url' => $signedUrl ?? null,
-            'todos' => $user->todos->where('is_done', '=', $mode),
+            'todos' => $user->todos
+                ->where('is_done', '=', $mode),
             'is_done'=>$mode,
         ]);
     }

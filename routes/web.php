@@ -4,6 +4,7 @@ use Illuminate\Support\Facades\Route;
 
 use App\Http\Controllers\TodoController;
 use App\Http\Controllers\UserController;
+use App\Http\Controllers\TimelineController;
 
 /**
  *  For Authentication actions
@@ -43,3 +44,8 @@ Route::middleware('auth')->group(function() {
     Route::get('profile', [UserController::class, 'profilePage'])->name('profile-page');
     Route::put('profile/update', [UserController::class, 'changeProfile'])->name('profile.update');
 });
+
+/**
+ *  Rute buat page 'timeline'
+ */
+Route::get('public/timeline', [TimelineController::class, 'timelinePage'])->name('timeline');
