@@ -31,6 +31,8 @@ class TimelineController extends Controller
             }
         );
 
+        dd($publicTodos);
+
         // IF using tap() helper and fn arrow function
         // $publicTodos->transform(
             // fn($todo) 
