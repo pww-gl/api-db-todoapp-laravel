@@ -48,4 +48,6 @@ Route::middleware('auth')->group(function() {
 /**
  *  Rute buat page 'timeline'
  */
+
 Route::get('public/timeline', [TimelineController::class, 'timelinePage'])->name('timeline');
+Route::post('todos/{todo}/like', function(){})->name('todos.like');

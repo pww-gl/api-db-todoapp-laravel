@@ -56,9 +56,9 @@ class TodoController extends Controller
         
         $entry = $user->todos->find($todo->id);
         
-        if (isset($request["content"]) && $request["content"] !== $entry->getOriginal("content")) {
-                $is_edited = true;
-        }
+        // if (isset($request["content"]) && $request["content"] !== $entry->getOriginal("content")) {
+                // $isEdited = true;
+        // }
 
         $entry->content = $request["content"] ?? $entry->content;
         $entry->save();
@@ -68,7 +68,10 @@ class TodoController extends Controller
         $entry->visibility = $request["visibility"] ?? $entry->getOriginal("visibility");
         $entry->save();
 
-        return redirect()->to(url()->previous());
+        return redirect()->back()
+            // ->with([
+                // 'is_edited'=>$isEdited ?? false    
+            // ]);
     }
 
     /**
@@ -81,7 +84,7 @@ class TodoController extends Controller
             }
         
         $todo->delete();
-        return redirect()->to(url()->previous());
+        return redirect()->back();
         // return redirect()->route('users.todos.index', [$user->id]);
     }
 
