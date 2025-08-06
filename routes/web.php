@@ -9,8 +9,8 @@ use App\Http\Controllers\TimelineController;
 /**
  *  For Authentication actions
  */
-Route::get('login', [UserController::class, 'loginForm'] )->name('login');
-Route::post('login', [UserController::class, 'authenticate']);
+Route::get('login', [UserController::class, 'loginForm'] )->name('login-page');
+Route::post('login', [UserController::class, 'authenticate'])->name('login');
 Route::post('logout', [UserController::class, 'logout'])->name('logout');
 Route::post('register', [UserController::class, 'register'])->name('register');
 
@@ -49,5 +49,5 @@ Route::middleware('auth')->group(function() {
  *  Rute buat page 'timeline'
  */
 
-Route::get('public/timeline', [TimelineController::class, 'timelinePage'])->name('timeline');
-Route::post('todos/{todo}/like', function(){})->name('todos.like');
+Route::get('public/timeline', [TimelineController::class, 'timelinePage'])->name('timeline-page');
+Route::post('todos/{todo}/like', [TimelineController::class, 'todoLikes'])->name('todos.like');

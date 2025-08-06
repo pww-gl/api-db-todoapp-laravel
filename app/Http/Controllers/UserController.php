@@ -108,9 +108,11 @@ class UserController extends Controller
             $signedUrl = Storage::disk('s3')->temporaryUrl(
                 $user->avatar_url, now()->addMinutes(2)
             );
+        } 
+        else {
+            $avatarUrl = asset('storage/avatar-placeholder.jpg');
         }
-        // dd($user->todos->where('is_done', '=', true));
-
+        
         return view('home', [
             'user' => $user,
             'avatar_url' => $signedUrl ?? null,

@@ -49,6 +49,13 @@
             </div>
         @endif
         
+        {{-- Timeline Button --}}
+        <div style="text-align: center; margin: 2px 0;">
+            <a href="{{ route('timeline-page') }}">
+                <button type="button">Go to Timeline</button>
+            </a>
+        </div>
+
         <!-- Profile Button -->
         <div style="text-align: center; margin: 2px 0;">
             <a href="{{ route('profile-page') }}">
@@ -130,7 +137,21 @@
         <tbody>
             @foreach ($todos as $todo)
                 <tr>
-                    <td>{{ $todo->content }}</td>
+                    {{-- Content Section --}}
+                    <td>
+                        <span id="content-display-{{ $todo->id }}">{{ $todo->content }}</span>
+                    
+                        <form id="content-form-{{ $todo->id }}" 
+                              method="POST" 
+                              action="{{ route('users.todos.update', [Auth::user()->id, $todo->id]) }}" 
+                              style="display: none;">
+                            @csrf
+                            @method('PUT')
+                            <input type="text" name="content" value="{{ $todo->content }}" required>
+                            <button type="submit">Save</button>
+                        </form>
+                    </td>
+
                     <td>{{ $todo->deadline ?? 'No Deadline' }}</td>
                     <td>{{ $todo->is_done ? 'Done' : 'Not Yet' }}</td>
                     <td>{{ ucfirst($todo->visibility) }}</td> <!-- Shows 'Public' or 'Private' -->
@@ -162,7 +183,10 @@
                                 Set {{ $todo->visibility === 'public' ? 'Private' : 'Public' }}
                             </button>
                         </form>
-                    
+
+                        <!-- Edit Content Toggle Button -->
+                        <button type="button" onclick="toggleEdit({{ $todo->id }})">Edit Content</button>
+
                         <!-- Delete -->
                         <form action="{{ route('users.todos.destroy', [Auth::user()->id, $todo->id]) }}" method="POST" style="display:inline;">
                             @csrf
@@ -180,5 +204,21 @@
         </form>
 
     </div>
+
+    <script>
+        function toggleEdit(id) {
+            const displayEl = document.getElementById(`content-display-${id}`);
+            const formEl = document.getElementById(`content-form-${id}`);
+        
+            if (displayEl.style.display === 'none') {
+                displayEl.style.display = 'inline';
+                formEl.style.display = 'none';
+            } else {
+                displayEl.style.display = 'none';
+                formEl.style.display = 'inline';
+            }
+        }
+    </script>
+
 </body>
 </html>

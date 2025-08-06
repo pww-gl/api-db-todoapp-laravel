@@ -6,9 +6,33 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
 </head>
 <body>
+@if (!Auth::check())
+    <div style="text-align: center; margin: 2px 0;">
+        <a href="{{ route('login-page') }}">
+            <button type="button">Login</button>
+        </a>
+    </div>
+    @else
+    <div style="text-align: center; margin: 2px 0;">
+        <a href="{{ route('home-page') }}">
+            <button type="button">Back to Homepage</button>
+        </a>
+    </div>
+@endif
+
 <div class="container mt-5">
     <h2 class="mb-4">皆のトド！</h2>
     <h3 class="mb-4">お互い頑張りましょう！</h3>
+
+    @if ($errors->any())
+        <div class="alert alert-danger">
+            <ul>
+                @foreach ($errors->all() as $error)
+                    <li>{{ $error }}</li>
+                @endforeach
+            </ul>
+        </div>
+    @endif
 
     @foreach ($publicTodos as $todo)
         <div class="card mb-3">

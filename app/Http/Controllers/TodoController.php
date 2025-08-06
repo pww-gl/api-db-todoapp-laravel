@@ -52,28 +52,16 @@ class TodoController extends Controller
      */
     public function update(Request $request, User $user, Todo $todo)
     {
-        // dd($request);
-        
-        $entry = $user->todos->find($todo->id);
-        
-        // if (isset($request["content"]) && $request["content"] !== $entry->getOriginal("content")) {
-                // $isEdited = true;
-        // }
+        $todo->content = $request["content"] ?? $todo->content;
+        $todo->save();
 
-        $entry->content = $request["content"] ?? $entry->content;
-        $entry->save();
+        $todo->timestamps = false;
+        $todo->is_done = $request["is_done"] ?? $todo->getOriginal("is_done");
+        $todo->visibility = $request["visibility"] ?? $todo->getOriginal("visibility");
+        $todo->save();
 
-        $entry->timestamps = false;
-        $entry->is_done = $request["is_done"] ?? $entry->getOriginal("is_done");
-        $entry->visibility = $request["visibility"] ?? $entry->getOriginal("visibility");
-        $entry->save();
-
-        return redirect()->back()
-            // ->with([
-                // 'is_edited'=>$isEdited ?? false    
-            // ]);
+        return redirect()->back();
     }
-
     /**
      * Delete the specified resource from the DB
      */
