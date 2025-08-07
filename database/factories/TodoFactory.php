@@ -19,9 +19,31 @@ class TodoFactory extends Factory
      */
     public function definition(): array
     {
+        $activities = ['READ',
+                    'WRITE',
+                    'BUY',
+                    'SELL',
+                    'CALL',
+                    'EMAIL',
+                    'MEET',
+                    'VISIT',
+                    'PAY',
+                    'WATCH',
+                    'LEARN',
+                    'FIX',
+                    'BUILD',
+                    'PLAN',
+                    'CLEAN',
+                    'ORGANIZE',
+                    'PICKUP',
+                    'DROP',
+                    'RESEARCH',
+                    'PLAY'];
+
+        
         return [
-            'user_id' => User::all()->random()->id,
-            'content' => fake()->sentence(3, false),    // Pass FALSE to force the sentence to only contain three words
+            // 'user_id' => U,
+            'content' => "I want to " . $activities[array_rand($activities)] . " a " . fake()->word(),    // Pass FALSE to force the sentence to only contain three words
             'deadline' => fake()->dateTimeBetween('now', '+5 months')->format('Y-m-d H:i:s'),
             'visibility' => 'public',
             // 'is_done' => ,

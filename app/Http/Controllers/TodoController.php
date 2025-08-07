@@ -37,7 +37,7 @@ class TodoController extends Controller
         ->first();
 
         if ($check) {
-            $error = 'There is already todo = "' . $validated['content'] . '" with the same deadline for this user';
+            $error = 'There is already a Todo: "' . $validated['content'] . '" with the same deadline for this user';
             return redirect()->back()->withErrors($error);
         } else {
             Todo::create($validated);
@@ -55,7 +55,7 @@ class TodoController extends Controller
         $todo->content = $request["content"] ?? $todo->content;
         $todo->save();
 
-        $todo->timestamps = false;
+        $todo->timestamps = false;  //ganti default behaviour.
         $todo->is_done = $request["is_done"] ?? $todo->getOriginal("is_done");
         $todo->visibility = $request["visibility"] ?? $todo->getOriginal("visibility");
         $todo->save();
@@ -149,7 +149,7 @@ class TodoController extends Controller
                 ->where('deadline', $newTodo['deadline'])
                 ->first()) {
                 $errors->add('error #'.$x,
-                        'Todo = "'.$newTodo['content'].'" with the same deadline already exist for your account');
+                        'Todo: "'.$newTodo['content'].'" with the same deadline already exist for your account');
             } else {
                 Todo::create([
                     'user_id'=>Auth::id(), 

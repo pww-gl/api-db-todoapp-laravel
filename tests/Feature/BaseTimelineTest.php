@@ -37,7 +37,6 @@ class BaseTimelineTest extends TestCase
             'avatar_url' => 'placeholder.com'
         ]);
         
-
         /**
          *  Temporarily create Todos
          */

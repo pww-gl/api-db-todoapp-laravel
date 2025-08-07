@@ -21,31 +21,32 @@ class TimelineController extends Controller
         // $publicTodos = Todo::where('visibility', 'public')->get();
 
         $publicTodos = Todo::where('visibility', 'public')
-        ->orderBy('created_at','asc')
+        ->orderBy('created_at', 'desc')
         ->paginate(10);
 
         $publicTodos->transform(
             function ($todo) {
-                $todo->who_liked = unserialize($todo->who_liked) ?: [];
+                $todo->who_liked = unserialize($todo->who_liked) ?: []; //unserliaze shouldn't be passed NULL; this behaviour is deprecated and won't work in next version 
                 return $todo;
             } 
         );
 
         $publicTodos->transform(
             function ($todo) {
-                // $avatarUrl = User::where('id', $todo->user_id)
-                    // ->first()
-                    // ->avatar_url;
-                // if ($avatarUrl) {
-                    // $avatarUrl = Storage::disk('s3')->temporaryUrl(
-                        // $user->avatar_url, now()->addMinutes(2)
-                    // );
-                // } else { $avatarUrl = 'storage/avatar-placeholder.jpg';}
+                $avatarUrl = User::where('id', $todo->user_id)
+                    ->first()
+                    ->avatar_url;
+                if ($avatarUrl) {
+                    $avatarUrl = Storage::disk('s3')->temporaryUrl(
+                       $avatarUrl, now()->addMinutes(2)
+                    );
+                } else { $avatarUrl = 'storage/avatar-placeholder.jpg';}
 
-                $todo->user_avatar_url = 'storage/avatar-placeholder.jpg'; //Should be $avatarUrl if working
+                $todo->user_avatar_url = $avatarUrl; //Should be $avatarUrl if working
                 $todo->user_name = User::where('id', $todo->user_id)
                     ->first()
                     ->name;
+
                 $todo->likes_count = count($todo->who_liked);
                 
                 return $todo;
@@ -69,10 +70,11 @@ class TimelineController extends Controller
     {  
         if (!Auth::id()) {
             return redirect()->back()->withErrors([
-                "Only logged-in users are allowed to like" 
+                "Only logged-in users are allowed to like." 
             ]); 
         }
-        $userId = Auth::id();
+
+        // $userId = Auth::id();
         
         //should add $todo->timestamps = false;
         Debugbar::info($todo);

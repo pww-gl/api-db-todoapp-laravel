@@ -57,6 +57,9 @@
                         <small class="text-muted d-block">Deadline: {{ \Carbon\Carbon::parse($todo->deadline)->format('M d, Y') }}</small>
                     @endif
 
+                    {{-- Created At --}}
+                    <small class="text-muted d-block">Created at: {{ $todo->created_at->diffForHumans() }}</small>
+
                     {{-- Like/Unlike Form --}}
                     <form method="POST" action="{{ route('todos.like', $todo->id) }}" class="d-inline mt-2">
                         @csrf

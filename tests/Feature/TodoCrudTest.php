@@ -22,7 +22,7 @@ class TodoCrudTest extends TestCase
      * A basic feature test example.
      */
     #[Test]
-    public function create_a_new_todo(): void
+    public function creating_a_new_todo(): void
     {
         $user = User::factory()->create();
         
@@ -45,5 +45,11 @@ class TodoCrudTest extends TestCase
         $response->assertStatus(200);
         
         $response->assertViewHas('todos', $user->todos);
+    }
+
+    #[Test]
+    public function duplicate_content() 
+    {
+        //
     }
 }

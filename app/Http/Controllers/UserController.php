@@ -14,6 +14,8 @@ use Illuminate\Support\Facades\Validator;
 use Intervention\Image\Laravel\Facades\Image;
 use Illuminate\Support\Facades\Storage;
 use Carbon\Carbon;
+use Barryvdh\Debugbar\Facades\Debugbar;
+
 
 // use Illuminate\Support\MessageBag;
 
@@ -100,9 +102,11 @@ class UserController extends Controller
      */
     public function homePage(Request $request): View
     {        
+        Debugbar::startMeasure("fetch", "UserController::homePage()");
+        
         $user = Auth::user();
         $mode = $request->is_done;
-        $avatarUrl = $user->avatar_url; 
+        $avatarUrl = $user->avatar_url;
 
         if ($avatarUrl) {
             $signedUrl = Storage::disk('s3')->temporaryUrl(
@@ -110,7 +114,7 @@ class UserController extends Controller
             );
         } 
         else {
-            $avatarUrl = asset('storage/avatar-placeholder.jpg');
+            $avatarUrl = 'storage/avatar-placeholder.jpg';
         }
         
         return view('home', [
@@ -120,6 +124,8 @@ class UserController extends Controller
                 ->where('is_done', '=', $mode),
             'is_done'=>$mode,
         ]);
+
+        Debugbar::stopMeasure();
     }
 
     /**
