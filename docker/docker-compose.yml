@@ -1,0 +1,10 @@
+
+services:
+  db-api-todoapp:
+    image: db-api-todoapp:latest
+    container_name: db-api-todoapp
+    volumes:
+      - ../.:/var/www/
+    ports:
+      - "8000:8000" # for php artisan serve
+    tty: true

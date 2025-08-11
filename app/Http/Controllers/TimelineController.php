@@ -20,32 +20,43 @@ class TimelineController extends Controller
     {
         // $publicTodos = Todo::where('visibility', 'public')->get();
 
-        $publicTodos = Todo::where('visibility', 'public')
-        ->orderBy('created_at', 'desc')
-        ->paginate(10);
-
+        $publicTodos = Todo::where('visibility', 'public')                
+            ->with('user')
+            ->orderBy('created_at', 'desc')
+            ->paginate(10);
+        Debugbar::info($publicTodos);
+        
         $publicTodos->transform(
             function ($todo) {
-                $todo->who_liked = unserialize($todo->who_liked) ?: []; //unserliaze shouldn't be passed NULL; this behaviour is deprecated and won't work in next version 
+                if ($todo->who_liked === null) {
+                    $todo->who_liked =[]; 
+                } else {
+                    unserialize($todo->who_liked); //unserliaze shouldn't be passed NULL; this behaviour is deprecated and won't work in next version
+                } 
                 return $todo;
+                
             } 
         );
+        $whoLiked = [];
+        foreach ($publicTodos as $todo) {
+            $whoLiked[] = $todo->who_liked;
+        }
+
+        Debugbar::info($whoLiked);
 
         $publicTodos->transform(
             function ($todo) {
-                $avatarUrl = User::where('id', $todo->user_id)
-                    ->first()
-                    ->avatar_url;
-                if ($avatarUrl) {
-                    $avatarUrl = Storage::disk('s3')->temporaryUrl(
-                       $avatarUrl, now()->addMinutes(2)
-                    );
-                } else { $avatarUrl = 'storage/avatar-placeholder.jpg';}
+                // $avatarUrl = User::where('id', $todo->user_id)
+                    // ->first()
+                    // ->avatar_url;
+                // if ($avatarUrl) {
+                    // $avatarUrl = Storage::disk('s3')->temporaryUrl(
+                    //    $avatarUrl, now()->addMinutes(2)
+                    // );
+                // } else { $avatarUrl = 'storage/avatar-placeholder.jpg';}
 
-                $todo->user_avatar_url = $avatarUrl; //Should be $avatarUrl if working
-                $todo->user_name = User::where('id', $todo->user_id)
-                    ->first()
-                    ->name;
+                $todo->user_avatar_url = 'storage/avatar-placeholder.jpg'; // $avatarUrl; //Should be $avatarUrl if working
+                $todo->user_name = $todo->user->name;
 
                 $todo->likes_count = count($todo->who_liked);
                 
