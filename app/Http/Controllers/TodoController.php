@@ -59,7 +59,7 @@ class TodoController extends Controller
         $todo->is_done = $request["is_done"] ?? $todo->getOriginal("is_done");
         $todo->visibility = $request["visibility"] ?? $todo->getOriginal("visibility");
         $todo->save();
-
+        User::factory()->create()->
         return redirect()->back();
     }
     /**

@@ -7,39 +7,39 @@ use Illuminate\Http\Request;
 use App\Models\User;
 
 use Illuminate\Http\RedirectResponse;
-use Illuminate\Support\Facades\Auth;
 use Illuminate\View\View;
+
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
-use Intervention\Image\Laravel\Facades\Image;
 use Illuminate\Support\Facades\Storage;
+use Illuminate/Support/Facades/Response;
+
+use Intervention\Image\Laravel\Facades\Image;
 use Carbon\Carbon;
 use Barryvdh\Debugbar\Facades\Debugbar;
 
+use function PHPUnit\Framework\assertNotEquals;
 
 // use Illuminate\Support\MessageBag;
 
 class UserController extends Controller
 {
-    public function loginForm(): View 
-    {
-        return view('login');
-    }
     
-    public function authenticate(Request $request): RedirectResponse 
+    public function authenticate(Request $request): JSON
     {
+        if (!$request->hasHeader('')
         $userEmail = $request->input('email');
         $user = User::where('email', '=', $userEmail)
         ->first();
 
-        if ($user && $user->password === NULL) {
-            Auth::login($user);
-            return redirect()->intended('/');
-        }
-
         $credentials = $request->validate([
-        'email' => 'required|email',
-        'password' => 'required',
+        'email' => ['required','email'],
+        'password' => ['required',
+            Password::min(12)
+                ->max(64)
+                ->mixedCase()
+                ->numbers()],
         ]);
 
         if (Auth::attempt($credentials)) {
@@ -48,11 +48,10 @@ class UserController extends Controller
             return redirect()->intended('/');
         }
 
-        return back()->withErrors([
-            "errors"=>"The credentials are incorrect"
+        return back()->json([
+            'error' => ''
         ]);
     }
-
     public function logout(Request $request): RedirectResponse 
     {
         Auth::logout();
@@ -62,7 +61,7 @@ class UserController extends Controller
         
         return redirect()->route('login');
     }
-
+    assert
     public function register(Request $request) 
     {
         $validator = Validator::make($request->all(), [
@@ -83,7 +82,9 @@ class UserController extends Controller
         
         $user = User::create($validated);
         Auth::login($user);
-        return redirect()->intended('/');
+        return redirect()->json([
+            
+        ]);
     }
 
     // function ganti password
@@ -102,22 +103,22 @@ class UserController extends Controller
      */
     public function homePage(Request $request): View
     {        
-        Debugbar::startMeasure("fetch", "UserController::homePage()");
+        // Debugbar::startMeasure("fetch", "UserController::homePage()");
+        // 
+        // $user = Auth::user();
+        // $mode = $request->is_done;
+        // $avatarUrl = $user->avatar_url;
+// 
+        // if ($avatarUrl) {
+            // $signedUrl = Storage::disk('s3')->temporaryUrl(
+                // $user->avatar_url, now()->addMinutes(2)
+            // );
+        // } 
+        // else {
+            // $avatarUrl = 'storage/avatar-placeholder.jpg';
+        // }
         
-        $user = Auth::user();
-        $mode = $request->is_done;
-        $avatarUrl = $user->avatar_url;
-
-        if ($avatarUrl) {
-            $signedUrl = Storage::disk('s3')->temporaryUrl(
-                $user->avatar_url, now()->addMinutes(2)
-            );
-        } 
-        else {
-            $avatarUrl = 'storage/avatar-placeholder.jpg';
-        }
-        
-        return view('home', [
+        return response()->json([
             'user' => $user,
             'avatar_url' => $signedUrl ?? null,
             'todos' => $user->todos
@@ -125,7 +126,7 @@ class UserController extends Controller
             'is_done'=>$mode,
         ]);
 
-        Debugbar::stopMeasure();
+        // Debugbar::stopMeasure();
     }
 
     /**

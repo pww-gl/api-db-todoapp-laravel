@@ -1,8 +1,16 @@
-
 services:
-  db-api-todoapp:
-    image: db-api-todoapp:latest
-    container_name: db-api-todoapp
+  api-db-todoapp:
+    build:
+      context: .
+      dockerfile: ./laravel/dev/Dockerfile
+      args:
+        UID: 1000
+        GID: 1000
+        UNAME: dan-wyn
+      
+    image: api-db-todoapp:latest
+    container_name: api-db-todoapp
+    user: 1000:1000
     volumes:
       - ../.:/var/www/
     ports:
