@@ -7,6 +7,8 @@ use Illuminate\Database\Eloquent\Factories\Factory;
 use App\Models\User;
 use App\Models\Todos;
 
+use Illuminate\Support\Arr;
+
 /**
  * @extends \Illuminate\Database\Eloquent\Factories\Factory<\App\Models\Todo>
  */
@@ -43,7 +45,7 @@ class TodoFactory extends Factory
         
         return [
             // 'user_id' => U,
-            'content' => "I want to " . $activities[array_rand($activities)] . " a " . fake()->word(),    // Pass FALSE to force the sentence to only contain three words
+            'content' => "I want to " . Arr::random($activities). " a " . fake()->word(),    // Pass FALSE to force the sentence to only contain three words
             'deadline' => fake()->dateTimeBetween('now', '+5 months')->format('Y-m-d H:i:s'),
             'visibility' => 'public',
             // 'is_done' => ,

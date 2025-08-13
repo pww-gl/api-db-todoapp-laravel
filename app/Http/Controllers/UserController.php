@@ -18,6 +18,7 @@ use Illuminate/Support/Facades/Response;
 use Intervention\Image\Laravel\Facades\Image;
 use Carbon\Carbon;
 use Barryvdh\Debugbar\Facades\Debugbar;
+use Illuminate\Http\JsonResponse;
 
 use function PHPUnit\Framework\assertNotEquals;
 
@@ -26,7 +27,27 @@ use function PHPUnit\Framework\assertNotEquals;
 class UserController extends Controller
 {
     
-    public function authenticate(Request $request): JSON
+    public function register(Request $request): JsonResponse 
+    {
+        $validated = $request->validate([
+            'name' => ['required', 'string', 'max:255'],
+            'email' => ['required', 'email', 'unique:users'],
+            'password'=>['required', 
+                Password::min(12)
+                    ->max(64)
+                    ->mixedCase()
+                    ->numbers()
+            ] 
+        ]);
+        
+        $user = User::create($validated);
+        Auth::login($user);
+        return redirect()->json([
+            //    
+        ]);
+    }
+    
+    public function login(Request $request): JSON
     {
         if (!$request->hasHeader('')
         $userEmail = $request->input('email');
@@ -60,31 +81,6 @@ class UserController extends Controller
         $request->session()->regenerateToken(); // Regenerate CSRF TOKEN
         
         return redirect()->route('login');
-    }
-    assert
-    public function register(Request $request) 
-    {
-        $validator = Validator::make($request->all(), [
-            'name'=>'required',
-            'email'=>'required|email|unique:users',
-            'password'=>'sometimes|regex:/(?=.*[a-z])(?=.*[A-Z])(?=.*\d)[a-zA-Z\d]{11,}/m' 
-        ]);
-
-        if ($validator->fails()) {
-            return redirect()
-            ->back()
-            ->withErrors($validator)
-            ->withInput()
-            ->with('form','register');
-        }
-        
-        $validated = $validator->validated();
-        
-        $user = User::create($validated);
-        Auth::login($user);
-        return redirect()->json([
-            
-        ]);
     }
 
     // function ganti password

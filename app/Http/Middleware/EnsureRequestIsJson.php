@@ -18,12 +18,19 @@ class EnsureRequestIsJson
     {
         if (!$request->isJson()) {
             if (!$request->acceptsJson()) {
-                $request->headers->set('Accept','application/json');
+                return response()->json([
+                    "error" => [
+                        "The API does not accept non-JSON request",
+                        "The API only support 'application/json' type"]    
+                    ], 406, [
+                        "Content-Type","application/json"
+                    ]);
+                // $request->headers->set('Accept','application/json');
             }
             return response()->json([
-                'error' => 'The API does not accept non-JSON request'
+                "error" => "The API does not accept non-JSON request"
             ], 415, [
-                'Content-Type','application/json' 
+                "Content-Type","application/json" 
             ]);
         }
         return $next($request);

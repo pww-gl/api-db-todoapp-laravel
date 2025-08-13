@@ -6,16 +6,45 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\TodoController;
 use App\Http\Controllers\TimelineController;
+
 use App\Http\Middleware\EnsureRequestIsJson;
 
-Route::get('/user', function (Request $request) {
-    return $request->user();
-});
+Route::prefix('/v1', function() {
+    
+    /**
+     *  Routes for general authentication
+     */
+    
+    Route::prefix('/users', function() {
+        Route::post('/register', [UserController::class, 'register'])->name('register');
+        Route::post('/login', [UserController::class, 'login'])->name('login');
+        
+        Route::middleware('auth', function() {
+            Route::get('/users/{user}', [UserController::class, 'showUser'])->name('show-user');
+            Route::put('/{user}', [UserController::class, 'updateProfile'])->name('update-profile');    
+            Route::post('/logout', [UserController::class, 'logout'])->name('logout');
+        });
+    });
 
-Route::prefix('v1')->group(function() {
-    Route::get('/users/{user}', [UserController::class, 'showUser'])->name('show-user');
-    Route::get('/users/{user}/todos/{todo}', [TodoController::class, 'indexTodos'])->name('index-todos');
-    Route::post('/users/{user}/todos/', [TodoController::class, 'storeNewTodo'])->name('store-new-todo');
-    Route::put('/users/{user}/todos/{todo}', [TodoController::class, 'updateTodo'])->name('update-todo');
-    Route::delete('/users/{user}/todos/{todo}', [TodoController::class, 'deleteTodo'])->name('delete-todo')
-    })->middleware(EnsureRequestIsJson::class);
+    /**
+     *  Routes for Todo's CRUD actions
+     */
+    Route::prefix('/users/{users}')->group(function() {    
+        Route::get('/todos', [TodoController::class, 'indexTodos'])->name('todos.index');
+        Route::post('/todos', [TodoController::class, 'storeNewTodo'])->name('todos.store');
+        Route::put('/todos/{todo}', [TodoController::class, 'updateTodo'])->name('todos.update');   
+        Route::delete('/todos/{todo}', [TodoController::class, 'deleteTodo'])->name('todos.delete');
+        })->middleware('auth');
+
+    /**
+     *  Route for Timeline (Public Viewing)
+     */
+    Route::prefix('/public', function() {
+        Route::get('/todos', [TimelineController::class, 'indexPublicTodo'])->name('public-todos.index');
+        Route::put('/todos/{todo}', [TimelineController::class, 'updatePublicTodo'])->name('public-todos.update');
+    });
+    
+    /**
+     *  
+     */
+});
