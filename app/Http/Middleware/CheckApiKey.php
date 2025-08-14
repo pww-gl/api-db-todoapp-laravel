@@ -6,6 +6,9 @@ use Closure;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
 
+use App\Models\ClientApi;
+
+
 class CheckApiKey
 {
     /**
@@ -15,8 +18,12 @@ class CheckApiKey
      */
     public function handle(Request $request, Closure $next): Response
     {
-        $hashedKey = $request->api()
-        if (!)
+        if ($request->header('X-Api-Key') !== hash('sha256', env('API_ACCESS_KEY') . ClientApi::where('client_name', $request->header('User-Agent')))) {
+            return response()->json([
+                'error'=>'API Client Key is invalid'
+            ]);
+        }
+
         return $next($request);
     }
 }

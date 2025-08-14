@@ -19,19 +19,43 @@ use Illuminate\Support\MessageBag;
 
 class TodoController extends Controller
 {    
+    public function indexTodos(Request $request) 
+    {
+        $todos = Todo::where('user_id', Auth::id())
+            ->orderBy('created_at', 'asc')
+            ->paginate(10);
+
+        $todosPagination = [
+            'total_todos'=>$todos->total(),
+            'current_page'=>$todos->currentPage(),
+            'per_page'=>$todos->perPage(),
+            'total_pages'=>$todos->lastPage(),
+        ];
+
+        return response()->json([
+            'message' => 'Todos for the user has been retrieved succesfully',
+            'data' => [
+                'pagination' => $todosPagination,
+                'todos'=>$todos->items()
+                ]
+        ]);
+    }
+
+
     /**
      * Store a newly created resource in storage.
      */
-    public function store(Request $request)
+    public function storeNewTodo(Request $request)
     {
         $validated = $request->validate([
-            'user_id'  => 'required|integer',
             'visibility' => ['required', 'string', 'regex:/public|private/'],
             'content'  => 'required|string',
             'deadline' => 'nullable|date',    
         ]);
 
-        $check = Todo::where('user_id', '=', $validated['user_id'])
+        $validated["user_id"] = Auth::id();
+
+        $check = Todo::where('user_id', '=', $validated['user_id']) 
         ->where('content', '=', $validated['content'])
         ->where('deadline', '=', $validated['deadline'])
         ->first();
@@ -40,18 +64,30 @@ class TodoController extends Controller
             $error = 'There is already a Todo: "' . $validated['content'] . '" with the same deadline for this user';
             return redirect()->back()->withErrors($error);
         } else {
-            Todo::create($validated);
+            $todo = Todo::create($validated);
         }
         
-        return redirect()->back();
+        return response()->json([
+            'message' => 'The new todo has been created succesfully',
+            'data' => [
+                'todos' => $todo
+                ]
+        ], 201);
     }
 
     /**
      *  Update the specified resource in storage.
      *  Kalau request sudah ada ID nya
      */
-    public function update(Request $request, User $user, Todo $todo)
+    public function updateTodo(Request $request, User $user, Todo $todo)
     {
+        $validated = $request->validate([
+            "content" => ['sometimes', 'string'],
+            "is_done" => ['sometimes', 'boolean'],
+            "visibility" => ['sometimes', 'boolean'],
+            "edited_at" => ['sometimes', 'datetime']
+        ]);
+        
         $todo->content = $request["content"] ?? $todo->content;
         $todo->save();
 
@@ -59,9 +95,10 @@ class TodoController extends Controller
         $todo->is_done = $request["is_done"] ?? $todo->getOriginal("is_done");
         $todo->visibility = $request["visibility"] ?? $todo->getOriginal("visibility");
         $todo->save();
-        User::factory()->create()->
+        // User::factory()->create()->
         return redirect()->back();
     }
+
     /**
      * Delete the specified resource from the DB
      */

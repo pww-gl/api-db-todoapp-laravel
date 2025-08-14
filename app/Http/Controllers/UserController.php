@@ -13,12 +13,13 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\Storage;
-use Illuminate/Support/Facades/Response;
+use Illuminate\Support\Facades\Response;
 
 use Intervention\Image\Laravel\Facades\Image;
 use Carbon\Carbon;
 use Barryvdh\Debugbar\Facades\Debugbar;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Validation\Rules\Password;
 
 use function PHPUnit\Framework\assertNotEquals;
 
@@ -40,106 +41,83 @@ class UserController extends Controller
             ] 
         ]);
         
-        $user = User::create($validated);
-        Auth::login($user);
-        return redirect()->json([
-            //    
-        ]);
-    }
-    
-    public function login(Request $request): JSON
-    {
-        if (!$request->hasHeader('')
-        $userEmail = $request->input('email');
-        $user = User::where('email', '=', $userEmail)
-        ->first();
-
-        $credentials = $request->validate([
-        'email' => ['required','email'],
-        'password' => ['required',
-            Password::min(12)
-                ->max(64)
-                ->mixedCase()
-                ->numbers()],
-        ]);
-
-        if (Auth::attempt($credentials)) {
-            $request->session()->regenerate();
-            $id = Auth::id();
-            return redirect()->intended('/');
-        }
-
-        return back()->json([
-            'error' => ''
-        ]);
-    }
-    public function logout(Request $request): RedirectResponse 
-    {
-        Auth::logout();
+        $user =  User::create($validated);
         
-        $request->session()->invalidate();
-        $request->session()->regenerateToken(); // Regenerate CSRF TOKEN
-        
-        return redirect()->route('login');
-    }
-
-    // function ganti password
-    
-    // function ganti nama
-
-    /**
-     * PRIORITAS
-     * function ganti profile picture
-     * fokus, manipulasi file
-     */
-
-
-    /**
-     *  Kirim data untuk Home-Page
-     */
-    public function homePage(Request $request): View
-    {        
-        // Debugbar::startMeasure("fetch", "UserController::homePage()");
-        // 
-        // $user = Auth::user();
-        // $mode = $request->is_done;
-        // $avatarUrl = $user->avatar_url;
-// 
-        // if ($avatarUrl) {
-            // $signedUrl = Storage::disk('s3')->temporaryUrl(
-                // $user->avatar_url, now()->addMinutes(2)
-            // );
-        // } 
-        // else {
-            // $avatarUrl = 'storage/avatar-placeholder.jpg';
-        // }
+        $token = $user->createToken( $request->header('User-Agent') . "-" . (string) $user->name );
         
         return response()->json([
-            'user' => $user,
-            'avatar_url' => $signedUrl ?? null,
-            'todos' => $user->todos
-                ->where('is_done', '=', $mode),
-            'is_done'=>$mode,
+            'message' => 'New user has been created',
+            'data' => [
+                'name' => $user->name,
+                'email' => $user->email,
+                'token' => $token->plainTextToken
+            ]
+        ], 201, [
+            // 'Location' =>
+        ]);
+    }
+    
+    public function login(Request $request, User $user): JsonResponse
+    {
+        $credentials = $request->validate([
+            'email' => ['required','email'],
+            'password' => ['required',
+                Password::min(12)
+                    ->max(64)
+                    ->mixedCase()
+                    ->numbers()
+                ],
         ]);
 
-        // Debugbar::stopMeasure();
+        if (Auth::attempt($credentials) !== true) {
+            return response()->json([
+                'error' => 'The credentials are incorrect' 
+            ], 401);
+        }
+
+        $tokenName = ($request->header('User-Agent') . "-" . (string) Auth::user()->name);
+        
+        if ($token = Auth::user()->tokens()->where('name', $tokenName)->first()) {
+            // User::where('id', 1)->first()->tokens->filter(fn($token)=>$token->name===$tokenName);    // TICKET: Check if for each API, there is already token associated
+            // $token->name
+            // token
+            // created_at
+            // updated_at;
+            $user->tokens()->where('name', $tokenName)->delete();
+        }
+
+        $token = Auth::user()->createToken($tokenName);
+        return response()->json([
+            'message' => 'Access token for the user has been generated',
+            'data' => ['token' => $token->plainTextToken]
+        ], 200);
+    }
+
+    public function logout(Request $request, User $user): JsonResponse 
+    {
+        $request->user()->currentAccessToken()->delete();
+        
+        return response()->json([
+            'message' => 'Access token for the user has been deleted'
+        ]);
     }
 
     /**
      *  Kirim data user buat nampilin Profile Page
      */
-    public function profilePage(): View 
+    public function showUser(): JsonResponse
     {    
         $user = Auth::user();
-        $avatarUrl = $user->avatar_url;
+        $signedUrl = $user->avatar_url;
 
-        if ($avatarUrl) {
-            $signedUrl = Storage::disk('s3')->temporaryUrl(
-                $user->avatar_url, now()->addMinutes(2)
-            );
-        }
 
-        return view('profile', [
+        // if ($avatarUrl) {
+            // $signedUrl = Storage::disk('s3')->temporaryUrl(
+                // $user->avatar_url, now()->addMinutes(2)
+            // );
+        // }
+
+        return response()->json([
             'name'=>$user->name,
             'email'=>$user->email,
             'avatar_url'=>$signedUrl ?? null
@@ -149,13 +127,24 @@ class UserController extends Controller
     /**
      *  Merubah data user di profile page
      */
-    public function changeProfile(Request $request): RedirectResponse
+    public function updateProfile(Request $request): JsonResponse
     {
-        $request->validate([
-            'name' => 'nullable|string|max:256',
-            'password'=> 'nullable|regex:/(?=.*[a-z])(?=.*[A-Z])(?=.*[\d])[a-zA-Z\d]/m',
-            'email' => 'nullable|email',  
-            'avatar_picture' => 'sometimes|mimes:jpg,jpeg,png|extensions:jpg,jpeg,png|max:1000|dimensions:ratio=1/1'
+        $validated = $request->validate([
+            'name' => ['sometimes', 'string', 'max:256'],
+            'email' => ['sometimes', 'email'],
+            'password'=> [
+                'sometimes',
+                Password::min(12)->max(64)
+                    ->mixedCase()
+                    ->numbers()
+                ],
+            'avatar_picture' => [
+                'sometimes', 
+                'mimes:jpg,jpeg,png',
+                'extensions:jpg,jpeg,png',
+                'max:1000',
+                'dimensions:ratio=1/1'
+                ]
         ]);
 
         $user = Auth::user();
@@ -163,7 +152,7 @@ class UserController extends Controller
         /**
          *  Menyimpan foto ke s3
          */
-        if ($request->avatar_picture){
+        if (array_key_exists('avatar_picture', $validated)){
             $avatarUploaded = $request->file('avatar_picture');
             $imageName = $user->id . '.' . $avatarUploaded->extension();
             $avatarUrl = $request->file('avatar_picture')->storeAs('/avatars', $imageName, 's3');  // To specify disk, add a third argument for storeAs() method
@@ -172,13 +161,22 @@ class UserController extends Controller
         /**
          *  Menyimpan data baru to DB
          */
-        $user = Auth::user();
-        $user->name = $request->name ?? $user->name;
-        $user->email = $request->email ?? $user->email;        
-        $user->password = $request->password ?? $user->password;
+        $user->name = $validated['name'] ?? $user->name;
+        $user->email = $validated['email'] ?? $user->email;        
+        $user->password = $validated['password'] ?? $user->password;
         $user->avatar_url = $avatarUrl ?? $user->avatar_url;
         $user->save();
 
-        return redirect()->back();
+        $user = User::where('id', Auth::id())->first();
+
+        return response()->json([
+            'message'=>"User's data has been updated",
+            'data'=> ['user' => [ 
+                'name' => $user->name,
+                'email' => $user->email,
+                'avatar_url' => $user->avatar_url
+                ]
+            ]
+        ]);
     }
 }
