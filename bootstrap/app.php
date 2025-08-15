@@ -1,11 +1,12 @@
 <?php
 
-use App\Http\Middleware\CheckApiKey;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
 
 use App\Http\Middleware\EnsureRequestIsJson;
+use App\Http\Middleware\CheckApiKey;
+use App\Http\Middleware\EnsureUserIsAuthorized;
 
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
@@ -16,10 +17,14 @@ return Application::configure(basePath: dirname(__DIR__))
     )
 
     ->withMiddleware(function (Middleware $middleware): void {
-        $middleware->appendToGroup('rest-api-checks', [
+        $middleware->api(prepend: [
             EnsureRequestIsJson::class,
             CheckApiKey::class
         ]);
+
+        // $middleware->api(append: [
+            // EnsureUserIsAuthorized::class
+        // ]);
     })
 
     ->withExceptions(function (Exceptions $exceptions): void {

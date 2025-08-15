@@ -18,10 +18,15 @@ class CheckApiKey
      */
     public function handle(Request $request, Closure $next): Response
     {
-        if ($request->header('X-Api-Key') !== hash('sha256', env('API_ACCESS_KEY') . ClientApi::where('client_name', $request->header('User-Agent')))) {
+        if (!$request->hasHeader('X-Api-Key'))
+             return response()->json([
+                'error'=>'API Client Key is missing'
+            ], 400);       
+
+        if ($request->header('X-Api-Key') !== hash('sha256', env('API_ACCESS_KEY') . ClientApi::where('client_name', $request->header('User-Agent'))->pluck('unique_string'))) {
             return response()->json([
                 'error'=>'API Client Key is invalid'
-            ]);
+            ], 400);
         }
 
         return $next($request);

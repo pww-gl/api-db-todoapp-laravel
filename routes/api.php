@@ -8,6 +8,8 @@ use App\Http\Controllers\TodoController;
 use App\Http\Controllers\TimelineController;
 
 use App\Http\Middleware\EnsureRequestIsJson;
+use App\Http\Middleware\EnsureUserIsAuthorized;
+use Aws\Middleware;
 
 Route::prefix('/v1')->group(function() {
     
@@ -29,7 +31,7 @@ Route::prefix('/v1')->group(function() {
     /**
      *  Routes for Todo's CRUD actions
      */
-    Route::prefix('/users')->middleware('auth:sanctum')->group(function() {    
+    Route::prefix('/users/{user}')->middleware('auth:sanctum', EnsureUserIsAuthorized::class)->group(function() {    
         Route::get('/todos', [TodoController::class, 'indexTodos'])->name('todos.index');
         Route::post('/todos', [TodoController::class, 'storeNewTodo'])->name('todos.store');
         Route::put('/todos/{todo}', [TodoController::class, 'updateTodo'])->name('todos.update');   
@@ -41,7 +43,8 @@ Route::prefix('/v1')->group(function() {
      */
     Route::prefix('/public')->group(function() {
         Route::get('/todos', [TimelineController::class, 'indexPublicTodo'])->name('public-todos.index');
-        Route::put('/todos/{todo}', [TimelineController::class, 'updatePublicTodo'])->name('public-todos.update');
+        Route::put('/todos/{todo}', [TimelineController::class, 'updatePublicTodoLikes'])
+        ->name('public-todos.update')->middleware('auth:sanctum');
     });
     
     /**

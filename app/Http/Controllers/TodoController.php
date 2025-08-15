@@ -7,6 +7,7 @@ use App\Models\Todo;
 // use App\Http\Requests\UpdateTodoRequest;
 
 use App\Models\User;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
 use Illuminate\Support\Facades\Validator;
@@ -19,7 +20,7 @@ use Illuminate\Support\MessageBag;
 
 class TodoController extends Controller
 {    
-    public function indexTodos(Request $request) 
+    public function indexTodos(Request $request): JsonResponse 
     {
         $todos = Todo::where('user_id', Auth::id())
             ->orderBy('created_at', 'asc')
@@ -33,7 +34,7 @@ class TodoController extends Controller
         ];
 
         return response()->json([
-            'message' => 'Todos for the user has been retrieved succesfully',
+            'message' => 'Todos for the user has been retrieved',
             'data' => [
                 'pagination' => $todosPagination,
                 'todos'=>$todos->items()
@@ -41,34 +42,34 @@ class TodoController extends Controller
         ]);
     }
 
-
     /**
      * Store a newly created resource in storage.
      */
-    public function storeNewTodo(Request $request)
+    public function storeNewTodo(Request $request): JsonResponse
     {
         $validated = $request->validate([
             'visibility' => ['required', 'string', 'regex:/public|private/'],
-            'content'  => 'required|string',
-            'deadline' => 'nullable|date',    
+            'content'  => ['required', 'string'],
+            'deadline' => ['nullable', 'date']    
         ]);
 
         $validated["user_id"] = Auth::id();
 
         $check = Todo::where('user_id', '=', $validated['user_id']) 
-        ->where('content', '=', $validated['content'])
-        ->where('deadline', '=', $validated['deadline'])
-        ->first();
+            ->where('content', '=', $validated['content'])
+            ->where('deadline', '=', $validated['deadline'])
+            ->first();
 
         if ($check) {
-            $error = 'There is already a Todo: "' . $validated['content'] . '" with the same deadline for this user';
-            return redirect()->back()->withErrors($error);
+            return response()->json([
+                'error' => 'There is already a Todo: ' . $validated['content'] . ' with the same deadline for this user'
+            ]);
         } else {
             $todo = Todo::create($validated);
         }
         
         return response()->json([
-            'message' => 'The new todo has been created succesfully',
+            'message' => 'The new todo has been created',
             'data' => [
                 'todos' => $todo
                 ]
@@ -79,7 +80,7 @@ class TodoController extends Controller
      *  Update the specified resource in storage.
      *  Kalau request sudah ada ID nya
      */
-    public function updateTodo(Request $request, User $user, Todo $todo)
+    public function updateTodo(Request $request, User $user, Todo $todo): JsonResponse
     {
         $validated = $request->validate([
             "content" => ['sometimes', 'string'],
@@ -88,41 +89,30 @@ class TodoController extends Controller
             "edited_at" => ['sometimes', 'datetime']
         ]);
         
-        $todo->content = $request["content"] ?? $todo->content;
+        $todo->content = $request['content'] ?? $todo->getOriginal('content');
+        if ($todo->content !== $todo->getOriginal('content')) {
+            $todo->edited_at = date('Y-m-d H:i:s');
+        }
+        $todo->is_done = $request['is_done'] ?? $todo->getOriginal('is_done');
+        $todo->visibility = $request['visibility'] ?? $todo->getOriginal('visibility');
         $todo->save();
 
-        $todo->timestamps = false;  //ganti default behaviour.
-        $todo->is_done = $request["is_done"] ?? $todo->getOriginal("is_done");
-        $todo->visibility = $request["visibility"] ?? $todo->getOriginal("visibility");
-        $todo->save();
-        // User::factory()->create()->
-        return redirect()->back();
+        return response()->json([
+            'message' => 'The todo has been updated',
+            'data' => ['todo' => $todo]
+        ]);
     }
 
     /**
-     * Delete the specified resource from the DB
+     *  Delete the specified resource from the DB
      */
-    public function destroy(Request $request, User $user, Todo $todo)
+    public function deleteTodo(Request $request, User $user, Todo $todo): JsonResponse
     {
-        if ($user-> id !== $todo->user_id) {
-            abort('403','Unauthorized');
-            }
-        
         $todo->delete();
-        return redirect()->back();
-        // return redirect()->route('users.todos.index', [$user->id]);
+        return response()->json([
+        ], 204);
     }
 
-    /**
-     *  PRIORITAS
-     *  Fungsi export -> data ke csv, etc
-     *  Fungsi import -> dari csv atau data lain, balik ke export
-     *  Manipulasi file
-     */
-
-    /**
-     *  Memberikan data dalam file .csv ke user (EXPORT) 
-     */
     public function exportCsv() 
     {
         $user = Auth::user();

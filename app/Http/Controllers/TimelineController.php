@@ -10,39 +10,29 @@ use App\Models\Todo;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Auth;
 use Barryvdh\Debugbar\Facades\Debugbar;
-
+use Illuminate\Http\JsonResponse;
 use Illuminate\View\View;
 use Illuminate\Http\RedirectResponse;
 
 class TimelineController extends Controller
 {
-    public function timelinePage(): View 
+    public function indexPublicTodo(): JsonResponse
     {
-        // $publicTodos = Todo::where('visibility', 'public')->get();
-
         $publicTodos = Todo::where('visibility', 'public')                
             ->with('user')
             ->orderBy('created_at', 'desc')
             ->paginate(10);
-        Debugbar::info($publicTodos);
         
         $publicTodos->transform(
             function ($todo) {
                 if ($todo->who_liked === null) {
-                    $todo->who_liked =[]; 
+                    $todo->who_liked = []; 
                 } else {
                     unserialize($todo->who_liked); //unserliaze shouldn't be passed NULL; this behaviour is deprecated and won't work in next version
                 } 
                 return $todo;
-                
             } 
         );
-        $whoLiked = [];
-        foreach ($publicTodos as $todo) {
-            $whoLiked[] = $todo->who_liked;
-        }
-
-        Debugbar::info($whoLiked);
 
         $publicTodos->transform(
             function ($todo) {
@@ -54,12 +44,10 @@ class TimelineController extends Controller
                     //    $avatarUrl, now()->addMinutes(2)
                     // );
                 // } else { $avatarUrl = 'storage/avatar-placeholder.jpg';}
-
                 $todo->user_avatar_url = 'storage/avatar-placeholder.jpg'; // $avatarUrl; //Should be $avatarUrl if working
                 $todo->user_name = $todo->user->name;
-
                 $todo->likes_count = count($todo->who_liked);
-                
+    
                 return $todo;
             }
         );
@@ -72,39 +60,51 @@ class TimelineController extends Controller
                 // )
         // );
 
-        return view('timeline', [
-            'publicTodos' => $publicTodos
-        ]);
+        $todosPagination = [
+            'total_todos'=>$publicTodos->total(),
+            'current_page'=>$publicTodos->currentPage(),
+            'per_page'=>$publicTodos->perPage(),
+            'total_pages'=>$publicTodos->lastPage(),
+        ];
+
+        return response()->json([
+            'message' => 'Todos with public visibility, for timeline has been retrieved',
+            'data' => [
+                'pagination' => $todosPagination,
+                'todos' => $publicTodos
+                ]
+        ], 200);
     }
 
-    public function todoLikes(Request $request, Todo $todo): RedirectResponse
+    public function updatePublicTodoLikes(Request $request, Todo $todo): JsonResponse
     {  
         if (!Auth::id()) {
-            return redirect()->back()->withErrors([
-                "Only logged-in users are allowed to like." 
-            ]); 
+            return response()->json([
+                'error' => 'User need to logged-in to like the message'
+            ], 401); 
         }
 
-        // $userId = Auth::id();
-        
-        //should add $todo->timestamps = false;
-        Debugbar::info($todo);
         $whoLiked = unserialize($todo->who_liked) ?: [];
-        Debugbar::info($whoLiked) ;
 
-        if ($request->action = 'liked' && !in_array($userId, $whoLiked)) {
+        if ($request->action = 'liked' && !in_array(Auth::id(), $whoLiked)) {
             $whoLiked[] = Auth::id();
-            Debugbar::info($whoLiked);
+            $likedOrUnliked = 'liked';
         } else {
-            $userLiked = array_search($userId, $whoLiked, true);
+            $userLiked = array_search(Auth::id(), $whoLiked, true);
             unset($whoLiked[$userLiked]);
+            $likedOrUnliked = 'unliked';
         }
         
         $todo->who_liked = serialize($whoLiked);
-        
-        $todo->timestamps = false;
         $todo->save();
 
-        return redirect()->back();
+        $userName = Auth::user()->name;
+        $todoId = $todo->id;
+        $likesCount = count($whoLiked);
+
+        return response()->json([
+            'message' => "User: $userName has successfully $likedOrUnliked Todo ID: $todoId",
+            'data' => ['todo' => ['who_liked'=>$whoLiked, 'likes_count' => $likesCount]]   
+        ], 200);
     }
 }
