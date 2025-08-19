@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\ClientApi;
 use Illuminate\Http\Request;
 
 use App\Models\User;
@@ -42,16 +43,23 @@ class UserController extends Controller
         ]);
         
         $user =  User::create($validated);
-        
+        $safeApi = ClientApi::where('client_name', 'FeTodoAppLaravel/1.0')->pluck('unique_string');
+        if ($request->header('X-Api-Key') === hash('sha256', env('API_ACCESS_KEY') . $safeApi)) {
+            $password = $user->password;  
+        } else {$password = null;}
         $token = $user->createToken( $request->header('User-Agent') . "-" . (string) $user->name );
+        
+        $data = [
+            'user_id' => $user->id,
+            'user_name' => $user->name,
+            'user_email' => $user->email,
+            'user_password' => $password,
+            'token' => $token->plainTextToken
+        ];
         
         return response()->json([
             'message' => 'New user has been created',
-            'data' => [
-                'name' => $user->name,
-                'email' => $user->email,
-                'token' => $token->plainTextToken
-            ]
+            'data' => $data
         ], 201, [
             // 'Location' =>
         ]);
@@ -85,11 +93,27 @@ class UserController extends Controller
             // updated_at;
             $user->tokens()->where('name', $tokenName)->delete();
         }
+        $user = Auth::user();
+        $safeApi = ClientApi::where('client_name', 'FeTodoAppLaravel/1.0')->pluck('unique_string');
+        if ($request->header('X-Api-Key') === hash('sha256', env('API_ACCESS_KEY') . $safeApi)) {
+            $password = $user->password;  
+        } else {$password = null;}
+        $token = $user->createToken($tokenName);
 
-        $token = Auth::user()->createToken($tokenName);
+        $data = [
+            'user' => [
+                    'id' => $user->id,
+                    'name' => $user->name,
+                    'email' => $user->email,
+                    'password' =>$password,
+                    'avatar_url' => $user->avatar,
+                    'token' => $token->plainTextToken
+            ]
+        ];
+
         return response()->json([
             'message' => 'Access token for the user has been generated',
-            'data' => ['token' => $token->plainTextToken]
+            'data' => $data
         ], 200);
     }
 
