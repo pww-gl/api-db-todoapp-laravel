@@ -22,10 +22,16 @@ class CheckApiKey
              return response()->json([
                 'error'=>'API Client Key is missing'
             ], 400);       
+        
+        // foreach ($ClientApi::pluck('client_name'))
+        // if ($request->header('User-Agent') )
 
-        if ($request->header('X-Api-Key') !== hash('sha256', env('API_ACCESS_KEY') . ClientApi::where('client_name', $request->header('User-Agent'))->pluck('unique_string'))) {
+        $receivedKey = hash('sha256', env('API_ACCESS_KEY') . $request->header('X-Api-Key'));
+        $expectedKey = hash('sha256', env('API_ACCESS_KEY') . ClientApi::where('client_name', $request->header('User-Agent'))->value('unique_string'));
+
+        if ($receivedKey !== $expectedKey) {
             return response()->json([
-                'error'=>'API Client Key is invalid'
+             'error' => 'API Client Key is invalid',
             ], 400);
         }
 

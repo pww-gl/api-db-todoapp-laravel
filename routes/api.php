@@ -14,7 +14,7 @@ use Aws\Middleware;
 Route::prefix('/v1')->group(function() {
     
     /**
-     *  Routes for general authentication
+     *  Routes for general authentication   
      */
     
     Route::prefix('/users')->group(function() {

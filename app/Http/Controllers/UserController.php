@@ -15,6 +15,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Response;
+use Illuminate\Support\Facades\Log;
 
 use Intervention\Image\Laravel\Facades\Image;
 use Carbon\Carbon;
@@ -43,18 +44,16 @@ class UserController extends Controller
         ]);
         
         $user =  User::create($validated);
-        $safeApi = ClientApi::where('client_name', 'FeTodoAppLaravel/1.0')->pluck('unique_string');
-        if ($request->header('X-Api-Key') === hash('sha256', env('API_ACCESS_KEY') . $safeApi)) {
-            $password = $user->password;  
-        } else {$password = null;}
         $token = $user->createToken( $request->header('User-Agent') . "-" . (string) $user->name );
         
         $data = [
-            'user_id' => $user->id,
-            'user_name' => $user->name,
-            'user_email' => $user->email,
-            'user_password' => $password,
-            'token' => $token->plainTextToken
+            'user' => [
+                    'id' => $user->id,
+                    'name' => $user->name,
+                    'email' => $user->email,
+                    'password' => $user->password,
+                    'token' => $token->plainTextToken
+            ]
         ];
         
         return response()->json([
@@ -67,6 +66,8 @@ class UserController extends Controller
     
     public function login(Request $request, User $user): JsonResponse
     {
+        Log::info('Request input:', $request->all());
+
         $credentials = $request->validate([
             'email' => ['required','email'],
             'password' => ['required',
@@ -94,10 +95,6 @@ class UserController extends Controller
             $user->tokens()->where('name', $tokenName)->delete();
         }
         $user = Auth::user();
-        $safeApi = ClientApi::where('client_name', 'FeTodoAppLaravel/1.0')->pluck('unique_string');
-        if ($request->header('X-Api-Key') === hash('sha256', env('API_ACCESS_KEY') . $safeApi)) {
-            $password = $user->password;  
-        } else {$password = null;}
         $token = $user->createToken($tokenName);
 
         $data = [
@@ -105,8 +102,8 @@ class UserController extends Controller
                     'id' => $user->id,
                     'name' => $user->name,
                     'email' => $user->email,
-                    'password' =>$password,
-                    'avatar_url' => $user->avatar,
+                    'password' =>$user->password,
+                    'avatar_url' => $user->avatar_url,
                     'token' => $token->plainTextToken
             ]
         ];
@@ -195,10 +192,11 @@ class UserController extends Controller
 
         return response()->json([
             'message'=>"User's data has been updated",
-            'data'=> ['user' => [ 
-                'name' => $user->name,
-                'email' => $user->email,
-                'avatar_url' => $user->avatar_url
+            'data'=> [
+                'user' => [ 
+                    'name' => $user->name,
+                    'email' => $user->email,
+                    'avatar_url' => $user->avatar_url
                 ]
             ]
         ]);

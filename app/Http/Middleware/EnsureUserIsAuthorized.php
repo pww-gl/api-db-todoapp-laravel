@@ -18,7 +18,7 @@ class EnsureUserIsAuthorized
      */
     public function handle(Request $request, Closure $next): Response
     {
-        $user = $request->route('user');
+        $user = User::find($request->route('user'));
         // dd($user);
 
         $tokenFromRequest = $user->tokens()
@@ -35,7 +35,10 @@ class EnsureUserIsAuthorized
 
         if ( $tokenFromRequest !== $tokenOfUserTodo ) {
             return response()->json([
-                'error' => 'The requesting user is not authorized to perform the action'
+                'error' => 'The requesting user is not authorized to perform the action',
+                'request_token' => $tokenFromRequest,
+                'request_user_id' => $request->route('user'),
+                'todo_token' => $tokenOfUserTodo
             ], 402);
         } 
 
