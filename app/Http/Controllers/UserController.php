@@ -22,6 +22,7 @@ use Carbon\Carbon;
 use Barryvdh\Debugbar\Facades\Debugbar;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Validation\Rules\Password;
+use Laravel\Sanctum\PersonalAccessToken;
 
 use function PHPUnit\Framework\assertNotEquals;
 
@@ -64,9 +65,12 @@ class UserController extends Controller
         ]);
     }
     
+    /**
+     *  To Login
+     */
     public function login(Request $request, User $user): JsonResponse
     {
-        Log::info('Request input:', $request->all());
+        Log::info('Request  :', $request->all());
 
         $credentials = $request->validate([
             'email' => ['required','email'],
@@ -114,11 +118,17 @@ class UserController extends Controller
         ], 200);
     }
 
+    /**
+     *  To Logout
+     */
     public function logout(Request $request, User $user): JsonResponse 
     {
-        $request->user()->currentAccessToken()->delete();
+        $user->tokens()->delete();
+
+        DB::table('personal_access_tokens')->where('name', $request->header('User-Agent') . '-' . Auth::user()->name)
+        ->delete();
         
-        return response()->json([
+        return response()->json([   
             'message' => 'Access token for the user has been deleted'
         ]);
     }

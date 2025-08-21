@@ -20,6 +20,9 @@ use Illuminate\Support\MessageBag;
 
 class TodoController extends Controller
 {    
+    /**
+     *  Index the todos requested
+     */
     public function indexTodos(Request $request): JsonResponse 
     {
         $todos = Todo::where('user_id', Auth::id())
@@ -43,17 +46,35 @@ class TodoController extends Controller
     }
 
     /**
+     *  Query a single todo
+     */
+    public function showTodos(Todo $todo): JsonResponse 
+    {
+        return response()->json([
+            'message' => 'The todo has been successfully retrieved',
+            'data' => [
+                'todo' => $todo
+            ]
+        ]);    
+    }
+
+    /**
      * Store a newly created resource in storage.
      */
     public function storeNewTodo(Request $request): JsonResponse
     {
         $validated = $request->validate([
+            'user_id' => ['required'],
             'visibility' => ['required', 'string', 'regex:/public|private/'],
             'content'  => ['required', 'string'],
-            'deadline' => ['nullable', 'date']    
+            'deadline' => ['sometimes', 'nullable', 'date'],
+            'is_done' => ['sometimes', 'nullable', 'boolean'],
+            'is_edited' => ['sometimes', 'nullable', 'boolean'],
+            'created_at' => ['sometimes', 'nullable', 'date'],
+            'updated_at' => ['sometimes', 'nullable', 'date'],
+            'edited_at' => ['sometimes', 'nullable', 'date'],    
         ]);
 
-        $validated["user_id"] = Auth::id();
 
         $check = Todo::where('user_id', '=', $validated['user_id']) 
             ->where('content', '=', $validated['content'])
@@ -83,18 +104,17 @@ class TodoController extends Controller
     public function updateTodo(Request $request, User $user, Todo $todo): JsonResponse
     {
         $validated = $request->validate([
-            "content" => ['sometimes', 'string'],
-            "is_done" => ['sometimes', 'boolean'],
-            "visibility" => ['sometimes', 'boolean'],
-            "edited_at" => ['sometimes', 'datetime']
+            "content" => ['nullable', 'sometimes', 'string', 'max:255'],
+            "is_done" => ['nullable', 'sometimes', 'boolean'],
+            "visibility" => ['nullable', 'sometimes', 'regex:/public|private/'],
         ]);
         
-        $todo->content = $request['content'] ?? $todo->getOriginal('content');
+        $todo->content = $validated['content'] ?? $todo->getOriginal('content');
         if ($todo->content !== $todo->getOriginal('content')) {
             $todo->edited_at = date('Y-m-d H:i:s');
         }
-        $todo->is_done = $request['is_done'] ?? $todo->getOriginal('is_done');
-        $todo->visibility = $request['visibility'] ?? $todo->getOriginal('visibility');
+        $todo->is_done = $validated['is_done'] ?? $todo->getOriginal('is_done');
+        $todo->visibility = $validated['visibility'] ?? $todo->getOriginal('visibility');
         $todo->save();
 
         return response()->json([

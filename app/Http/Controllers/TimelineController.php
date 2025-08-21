@@ -28,12 +28,13 @@ class TimelineController extends Controller
                 if ($todo->who_liked === null) {
                     $todo->who_liked = []; 
                 } else {
-                    unserialize($todo->who_liked); //unserliaze shouldn't be passed NULL; this behaviour is deprecated and won't work in next version
+                    $decodedliked = unserialize($todo->who_liked); //unserliaze shouldn't be passed NULL; this behaviour is deprecated and won't work in next version
+                    $todo->who_liked = $decodedliked;
                 } 
                 return $todo;
             } 
         );
-
+        
         $publicTodos->transform(
             function ($todo) {
                 // $avatarUrl = User::where('id', $todo->user_id)
@@ -71,40 +72,40 @@ class TimelineController extends Controller
             'message' => 'Todos with public visibility, for timeline has been retrieved',
             'data' => [
                 'pagination' => $todosPagination,
-                'todos' => $publicTodos
+                'todos' => $publicTodos->items()
                 ]
         ], 200);
     }
 
     public function updatePublicTodoLikes(Request $request, Todo $todo): JsonResponse
     {  
-        if (!Auth::id()) {
+        if (Auth::guest()) {
             return response()->json([
-                'error' => 'User need to logged-in to like the message'
+                'error' => 'User need to logged-in to like the message',
+                'user' => [
+                    'id' => Auth::id(), 
+                    'name' => Auth::user()->name
+                ]
             ], 401); 
         }
 
-        $whoLiked = unserialize($todo->who_liked) ?: [];
-
-        if ($request->action = 'liked' && !in_array(Auth::id(), $whoLiked)) {
-            $whoLiked[] = Auth::id();
-            $likedOrUnliked = 'liked';
-        } else {
-            $userLiked = array_search(Auth::id(), $whoLiked, true);
-            unset($whoLiked[$userLiked]);
-            $likedOrUnliked = 'unliked';
-        }
+        $whoLiked = $request->json('data.todo.who_liked');
         
-        $todo->who_liked = serialize($whoLiked);
+        $todo->who_liked = $whoLiked;
         $todo->save();
 
         $userName = Auth::user()->name;
         $todoId = $todo->id;
-        $likesCount = count($whoLiked);
+        $likesCount = count(unserialize($whoLiked));
 
         return response()->json([
-            'message' => "User: $userName has successfully $likedOrUnliked Todo ID: $todoId",
-            'data' => ['todo' => ['who_liked'=>$whoLiked, 'likes_count' => $likesCount]]   
+            'message' => "User: $userName has successfully likedOrUnliked Todo ID: $todoId",
+            'data' => [
+                'todo' => [
+                    'who_liked'=>unserialize($whoLiked), 
+                    'likes_count' => $likesCount
+                ]
+            ]   
         ], 200);
     }
 }

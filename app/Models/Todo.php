@@ -12,6 +12,8 @@ class Todo extends Model
     /** @use HasFactory<\Database\Factories\TodoFactory> */
     use HasFactory;
 
+    protected $dataFormat = 'Y-m-d H:i:s';
+
     protected $fillable = [
         'user_id',
         'content',
@@ -26,3 +28,4 @@ class Todo extends Model
         return $this->belongsTo(User::class);
     }
 }
+

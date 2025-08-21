@@ -33,6 +33,7 @@ Route::prefix('/v1')->group(function() {
      */
     Route::prefix('/users/{user}')->middleware('auth:sanctum', EnsureUserIsAuthorized::class)->group(function() {    
         Route::get('/todos', [TodoController::class, 'indexTodos'])->name('todos.index');
+        Route::get('/todos/{todos}', [TodoController::class, 'showTodo'])->name('todos.show');
         Route::post('/todos', [TodoController::class, 'storeNewTodo'])->name('todos.store');
         Route::put('/todos/{todo}', [TodoController::class, 'updateTodo'])->name('todos.update');   
         Route::delete('/todos/{todo}', [TodoController::class, 'deleteTodo'])->name('todos.delete');

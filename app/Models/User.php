@@ -16,6 +16,8 @@ class User extends Authenticatable
     /** @use HasFactory<\Database\Factories\UserFactory> */
     use HasFactory, Notifiable, HasApiTokens;
 
+    protected $dataFormat = 'Y-m-d H:i:s';
+    
     /**
      * The attributes that are mass assignable.
      *
